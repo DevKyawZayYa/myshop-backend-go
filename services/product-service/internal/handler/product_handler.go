@@ -9,7 +9,7 @@ import (
 
 	"myshop-shared/pkg"
 
-	"github.com/labstack/echo/v4"
+	"github.com/gin-gonic/gin"
 )
 
 type ProductHandler struct {
@@ -20,81 +20,99 @@ func NewProductHandler(productUsecase *usecase.ProductUsecase) *ProductHandler {
 	return &ProductHandler{productUsecase: productUsecase}
 }
 
-func (h *ProductHandler) GetAllProducts(c echo.Context) error {
+func (h *ProductHandler) GetAllProducts(c *gin.Context) {
 	productQueryParams := params.NewProductQueryParam()
-	err := c.Bind(productQueryParams)
-
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, echo.Map{"message": "Invalid param."})
+	if err := c.ShouldBindQuery(productQueryParams); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid query parameters"})
+		return
 	}
 
-	products, err := h.productUsecase.GetAllProducts(c.Request().Context(), productQueryParams)
+	products, err := h.productUsecase.GetAllProducts(c.Request.Context(), productQueryParams)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "Failed to retrieve products"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve products"})
+		return
 	}
-	return c.JSON(http.StatusOK, echo.Map{"data": products})
+	c.JSON(http.StatusOK, gin.H{"data": products})
 }
 
-func (h *ProductHandler) GetProductByID(c echo.Context) error {
+func (h *ProductHandler) GetProductByID(c *gin.Context) {
 	id := c.Param("id")
-	product, err := h.productUsecase.GetProductByID(c.Request().Context(), id)
+	product, err := h.productUsecase.GetProductByID(c.Request.Context(), id)
 	if err != nil {
 		if errors.Is(err, pkg.ProductNotFound) {
-			return c.JSON(http.StatusNotFound, echo.Map{"message": "Product not found"})
+			c.JSON(http.StatusNotFound, gin.H{"message": "Product not found"})
+			return
 		}
-		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "Failed to retrieve product"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve product"})
+		return
 	}
-	return c.JSON(http.StatusOK, echo.Map{"data": product})
+	c.JSON(http.StatusOK, gin.H{"data": product})
 }
 
-func (h *ProductHandler) AddProduct(c echo.Context, product *request.ProductRequest) error {
-	if err := h.productUsecase.AddProduct(c.Request().Context(), product); err != nil {
+func (h *ProductHandler) AddProduct(c *gin.Context) {
+	var product request.ProductRequest
+	if err := c.ShouldBindJSON(&product); err != nil {
+		pkg.HandleValidationError(c, err)
+		return
+	}
+
+	if err := h.productUsecase.AddProduct(c.Request.Context(), &product); err != nil {
 		switch {
 		case errors.Is(err, pkg.CategoryNotFound):
-			return c.JSON(http.StatusNotFound, echo.Map{"message": "One or more categories not found"})
+			c.JSON(http.StatusNotFound, gin.H{"message": "One or more categories not found"})
 		case errors.Is(err, pkg.AttributeNotFound):
-			return c.JSON(http.StatusNotFound, echo.Map{"message": "One or more attributes not found"})
+			c.JSON(http.StatusNotFound, gin.H{"message": "One or more attributes not found"})
 		case errors.Is(err, pkg.DuplicateEntry):
-			return c.JSON(http.StatusConflict, echo.Map{"message": "Product already exists"})
+			c.JSON(http.StatusConflict, gin.H{"message": "Product already exists"})
 		default:
-			return c.JSON(http.StatusInternalServerError, echo.Map{"message": "Failed to create product"})
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to create product"})
 		}
+		return
 	}
 
-	return c.JSON(http.StatusCreated, echo.Map{"message": "Product created successfully", "data": product})
+	c.JSON(http.StatusCreated, gin.H{"message": "Product created successfully", "data": product})
 }
 
-func (h *ProductHandler) PatchProduct(c echo.Context, product *request.ProductPatchRequest) error {
+func (h *ProductHandler) PatchProduct(c *gin.Context) {
 	id := c.Param("id")
 
-	updatedProduct, err := h.productUsecase.UpdateProduct(c.Request().Context(), id, product)
+	var product request.ProductPatchRequest
+	if err := c.ShouldBindJSON(&product); err != nil {
+		pkg.HandleValidationError(c, err)
+		return
+	}
+
+	updatedProduct, err := h.productUsecase.UpdateProduct(c.Request.Context(), id, &product)
 	if err != nil {
 		switch {
 		case errors.Is(err, pkg.ProductNotFound):
-			return c.JSON(http.StatusNotFound, echo.Map{"message": "Product not found"})
+			c.JSON(http.StatusNotFound, gin.H{"message": "Product not found"})
 		case errors.Is(err, pkg.CategoryNotFound):
-			return c.JSON(http.StatusNotFound, echo.Map{"message": "One or more categories not found"})
+			c.JSON(http.StatusNotFound, gin.H{"message": "One or more categories not found"})
 		case errors.Is(err, pkg.AttributeNotFound):
-			return c.JSON(http.StatusNotFound, echo.Map{"message": "One or more attributes not found"})
+			c.JSON(http.StatusNotFound, gin.H{"message": "One or more attributes not found"})
 		case errors.Is(err, pkg.DuplicateEntry):
-			return c.JSON(http.StatusConflict, echo.Map{"message": "Product name already exists"})
+			c.JSON(http.StatusConflict, gin.H{"message": "Product name already exists"})
 		case errors.Is(err, pkg.NoFieldsToUpdate):
-			return c.JSON(http.StatusBadRequest, echo.Map{"message": "No fields provided to update"})
+			c.JSON(http.StatusBadRequest, gin.H{"message": "No fields provided to update"})
 		default:
-			return c.JSON(http.StatusInternalServerError, echo.Map{"message": "Failed to update product"})
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update product"})
 		}
+		return
 	}
 
-	return c.JSON(http.StatusOK, echo.Map{"message": "Product updated successfully", "data": updatedProduct})
+	c.JSON(http.StatusOK, gin.H{"message": "Product updated successfully", "data": updatedProduct})
 }
 
-func (h *ProductHandler) DeleteProduct(c echo.Context) error {
+func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 	id := c.Param("id")
-	if err := h.productUsecase.DeleteProduct(c.Request().Context(), id); err != nil {
+	if err := h.productUsecase.DeleteProduct(c.Request.Context(), id); err != nil {
 		if errors.Is(err, pkg.ProductNotFound) {
-			return c.JSON(http.StatusNotFound, echo.Map{"message": "Product not found"})
+			c.JSON(http.StatusNotFound, gin.H{"message": "Product not found"})
+			return
 		}
-		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "Failed to delete product"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete product"})
+		return
 	}
-	return c.JSON(http.StatusNoContent, nil)
+	c.Status(http.StatusNoContent)
 }

@@ -8,7 +8,7 @@ import (
 
 	"myshop-shared/pkg"
 
-	"github.com/labstack/echo/v4"
+	"github.com/gin-gonic/gin"
 )
 
 type AttributeHandler struct {
@@ -19,64 +19,82 @@ func NewAttributeHandler(attributeUsecase *usecase.AttributeUsecase) *AttributeH
 	return &AttributeHandler{attributeUsecase: attributeUsecase}
 }
 
-func (h *AttributeHandler) GetAllAttributes(c echo.Context) error {
+func (h *AttributeHandler) GetAllAttributes(c *gin.Context) {
 	attrs, err := h.attributeUsecase.GetAllAttributes()
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "Failed to retrieve attributes"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve attributes"})
+		return
 	}
-	return c.JSON(http.StatusOK, echo.Map{"data": attrs})
+	c.JSON(http.StatusOK, gin.H{"data": attrs})
 }
 
-func (h *AttributeHandler) AddAttribute(c echo.Context, attr *request.AttributeRequest) error {
-	if err := h.attributeUsecase.AddAttribute(attr); err != nil {
+func (h *AttributeHandler) AddAttribute(c *gin.Context) {
+	var attr request.AttributeRequest
+	if err := c.ShouldBindJSON(&attr); err != nil {
+		pkg.HandleValidationError(c, err)
+		return
+	}
+
+	if err := h.attributeUsecase.AddAttribute(&attr); err != nil {
 		switch {
 		case errors.Is(err, pkg.DuplicateEntry):
-			return c.JSON(http.StatusConflict, echo.Map{"message": "Attribute name already exists"})
+			c.JSON(http.StatusConflict, gin.H{"message": "Attribute name already exists"})
 		default:
-			return c.JSON(http.StatusInternalServerError, echo.Map{"message": "Failed to create attribute"})
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to create attribute"})
 		}
+		return
 	}
-	return c.JSON(http.StatusCreated, echo.Map{"message": "Attribute created successfully", "data": attr})
+	c.JSON(http.StatusCreated, gin.H{"message": "Attribute created successfully", "data": attr})
 }
 
-func (h *AttributeHandler) GetAttributeByID(c echo.Context) error {
+func (h *AttributeHandler) GetAttributeByID(c *gin.Context) {
 	id := c.Param("id")
 	attr, err := h.attributeUsecase.GetAttributeByID(id)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, echo.Map{"message": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
 	}
-	return c.JSON(http.StatusOK, attr)
+	c.JSON(http.StatusOK, attr)
 }
 
-func (h *AttributeHandler) PatchAttribute(c echo.Context, attr *request.AttributePatchRequest) error {
+func (h *AttributeHandler) PatchAttribute(c *gin.Context) {
 	id := c.Param("id")
-	updated, err := h.attributeUsecase.UpdateAttribute(id, attr)
+
+	var attr request.AttributePatchRequest
+	if err := c.ShouldBindJSON(&attr); err != nil {
+		pkg.HandleValidationError(c, err)
+		return
+	}
+
+	updated, err := h.attributeUsecase.UpdateAttribute(id, &attr)
 	if err != nil {
 		switch {
 		case errors.Is(err, pkg.AttributeNotFound):
-			return c.JSON(http.StatusNotFound, echo.Map{"message": "Attribute not found"})
+			c.JSON(http.StatusNotFound, gin.H{"message": "Attribute not found"})
 		case errors.Is(err, pkg.DuplicateEntry):
-			return c.JSON(http.StatusConflict, echo.Map{"message": "Attribute name already exists"})
+			c.JSON(http.StatusConflict, gin.H{"message": "Attribute name already exists"})
 		case errors.Is(err, pkg.NoFieldsToUpdate):
-			return c.JSON(http.StatusBadRequest, echo.Map{"message": "No fields provided to update"})
+			c.JSON(http.StatusBadRequest, gin.H{"message": "No fields provided to update"})
 		default:
-			return c.JSON(http.StatusInternalServerError, echo.Map{"message": "Failed to update attribute"})
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update attribute"})
 		}
+		return
 	}
-	return c.JSON(http.StatusOK, echo.Map{"message": "Attribute updated successfully", "data": updated})
+	c.JSON(http.StatusOK, gin.H{"message": "Attribute updated successfully", "data": updated})
 }
 
-func (h *AttributeHandler) DeleteAttribute(c echo.Context) error {
+func (h *AttributeHandler) DeleteAttribute(c *gin.Context) {
 	id := c.Param("id")
 	if err := h.attributeUsecase.DeleteAttribute(id); err != nil {
 		switch {
 		case errors.Is(err, pkg.AttributeNotFound):
-			return c.JSON(http.StatusNotFound, echo.Map{"message": "Attribute not found"})
+			c.JSON(http.StatusNotFound, gin.H{"message": "Attribute not found"})
 		case errors.Is(err, pkg.AttributeHasValues):
-			return c.JSON(http.StatusBadRequest, echo.Map{"message": "Attribute has values and cannot be deleted"})
+			c.JSON(http.StatusBadRequest, gin.H{"message": "Attribute has values and cannot be deleted"})
 		default:
-			return c.JSON(http.StatusInternalServerError, echo.Map{"message": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		}
+		return
 	}
-	return c.JSON(http.StatusNoContent, nil)
+	c.Status(http.StatusNoContent)
 }

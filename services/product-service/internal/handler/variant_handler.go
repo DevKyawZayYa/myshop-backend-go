@@ -9,7 +9,7 @@ import (
 
 	"myshop-shared/pkg"
 
-	"github.com/labstack/echo/v4"
+	"github.com/gin-gonic/gin"
 )
 
 type VariantHandler struct {
@@ -20,85 +20,103 @@ func NewVariantHandler(variantUsecase *usecase.VariantUsecase) *VariantHandler {
 	return &VariantHandler{variantUsecase: variantUsecase}
 }
 
-func (h *VariantHandler) GetAllVariants(c echo.Context) error {
+func (h *VariantHandler) GetAllVariants(c *gin.Context) {
 	variantQueryParams := params.NewVariantQueryParam()
-	err := c.Bind(variantQueryParams)
-
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, echo.Map{"message": "Invalid param."})
+	if err := c.ShouldBindQuery(variantQueryParams); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid query parameters"})
+		return
 	}
 
-	variants, err := h.variantUsecase.GetAllVariants(c.Request().Context(), variantQueryParams)
+	variants, err := h.variantUsecase.GetAllVariants(c.Request.Context(), variantQueryParams)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "Failed to retrieve variants"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve variants"})
+		return
 	}
-	return c.JSON(http.StatusOK, echo.Map{"data": variants})
+	c.JSON(http.StatusOK, gin.H{"data": variants})
 }
 
-func (h *VariantHandler) GetVariantByID(c echo.Context) error {
+func (h *VariantHandler) GetVariantByID(c *gin.Context) {
 	id := c.Param("id")
-	variant, err := h.variantUsecase.GetVariantByID(c.Request().Context(), id)
+	variant, err := h.variantUsecase.GetVariantByID(c.Request.Context(), id)
 	if err != nil {
 		if errors.Is(err, pkg.VariantNotFound) {
-			return c.JSON(http.StatusNotFound, echo.Map{"message": "Variant not found"})
+			c.JSON(http.StatusNotFound, gin.H{"message": "Variant not found"})
+			return
 		}
-		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "Failed to retrieve variant"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve variant"})
+		return
 	}
-	return c.JSON(http.StatusOK, echo.Map{"data": variant})
+	c.JSON(http.StatusOK, gin.H{"data": variant})
 }
 
-func (h *VariantHandler) AddVariant(c echo.Context, variant *request.VariantRequest) error {
-	if err := h.variantUsecase.AddVariant(c.Request().Context(), variant); err != nil {
+func (h *VariantHandler) AddVariant(c *gin.Context) {
+	var variant request.VariantRequest
+	if err := c.ShouldBindJSON(&variant); err != nil {
+		pkg.HandleValidationError(c, err)
+		return
+	}
+
+	if err := h.variantUsecase.AddVariant(c.Request.Context(), &variant); err != nil {
 		switch {
 		case errors.Is(err, pkg.ProductNotFound):
-			return c.JSON(http.StatusNotFound, echo.Map{"message": "Product not found"})
+			c.JSON(http.StatusNotFound, gin.H{"message": "Product not found"})
 		case errors.Is(err, pkg.AttributeValueNotFound):
-			return c.JSON(http.StatusNotFound, echo.Map{"message": "One or more attribute values not found"})
+			c.JSON(http.StatusNotFound, gin.H{"message": "One or more attribute values not found"})
 		case errors.Is(err, pkg.InvalidAttributeValueForProduct):
-			return c.JSON(http.StatusBadRequest, echo.Map{"message": "One or more attribute values do not belong to this product's attributes"})
+			c.JSON(http.StatusBadRequest, gin.H{"message": "One or more attribute values do not belong to this product's attributes"})
 		case errors.Is(err, pkg.DuplicateEntry):
-			return c.JSON(http.StatusConflict, echo.Map{"message": "Variant with this SKU already exists"})
+			c.JSON(http.StatusConflict, gin.H{"message": "Variant with this SKU already exists"})
 		default:
-			return c.JSON(http.StatusInternalServerError, echo.Map{"message": "Failed to create variant"})
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to create variant"})
 		}
+		return
 	}
 
-	return c.JSON(http.StatusCreated, echo.Map{"message": "Variant created successfully", "data": variant})
+	c.JSON(http.StatusCreated, gin.H{"message": "Variant created successfully", "data": variant})
 }
 
-func (h *VariantHandler) PatchVariant(c echo.Context, variant *request.VariantPatchRequest) error {
+func (h *VariantHandler) PatchVariant(c *gin.Context) {
 	id := c.Param("id")
 
-	updatedVariant, err := h.variantUsecase.UpdateVariant(c.Request().Context(), id, variant)
+	var variant request.VariantPatchRequest
+	if err := c.ShouldBindJSON(&variant); err != nil {
+		pkg.HandleValidationError(c, err)
+		return
+	}
+
+	updatedVariant, err := h.variantUsecase.UpdateVariant(c.Request.Context(), id, &variant)
 	if err != nil {
 		switch {
 		case errors.Is(err, pkg.VariantNotFound):
-			return c.JSON(http.StatusNotFound, echo.Map{"message": "Variant not found"})
+			c.JSON(http.StatusNotFound, gin.H{"message": "Variant not found"})
 		case errors.Is(err, pkg.ProductNotFound):
-			return c.JSON(http.StatusNotFound, echo.Map{"message": "Product not found"})
+			c.JSON(http.StatusNotFound, gin.H{"message": "Product not found"})
 		case errors.Is(err, pkg.AttributeValueNotFound):
-			return c.JSON(http.StatusNotFound, echo.Map{"message": "One or more attribute values not found"})
+			c.JSON(http.StatusNotFound, gin.H{"message": "One or more attribute values not found"})
 		case errors.Is(err, pkg.InvalidAttributeValueForProduct):
-			return c.JSON(http.StatusBadRequest, echo.Map{"message": "One or more attribute values do not belong to this product's attributes"})
+			c.JSON(http.StatusBadRequest, gin.H{"message": "One or more attribute values do not belong to this product's attributes"})
 		case errors.Is(err, pkg.DuplicateEntry):
-			return c.JSON(http.StatusConflict, echo.Map{"message": "Variant with this SKU already exists"})
+			c.JSON(http.StatusConflict, gin.H{"message": "Variant with this SKU already exists"})
 		case errors.Is(err, pkg.NoFieldsToUpdate):
-			return c.JSON(http.StatusBadRequest, echo.Map{"message": "No fields provided to update"})
+			c.JSON(http.StatusBadRequest, gin.H{"message": "No fields provided to update"})
 		default:
-			return c.JSON(http.StatusInternalServerError, echo.Map{"message": "Failed to update variant"})
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update variant"})
 		}
+		return
 	}
 
-	return c.JSON(http.StatusOK, echo.Map{"message": "Variant updated successfully", "data": updatedVariant})
+	c.JSON(http.StatusOK, gin.H{"message": "Variant updated successfully", "data": updatedVariant})
 }
 
-func (h *VariantHandler) DeleteVariant(c echo.Context) error {
+func (h *VariantHandler) DeleteVariant(c *gin.Context) {
 	id := c.Param("id")
-	if err := h.variantUsecase.DeleteVariant(c.Request().Context(), id); err != nil {
+	if err := h.variantUsecase.DeleteVariant(c.Request.Context(), id); err != nil {
 		if errors.Is(err, pkg.VariantNotFound) {
-			return c.JSON(http.StatusNotFound, echo.Map{"message": "Variant not found"})
+			c.JSON(http.StatusNotFound, gin.H{"message": "Variant not found"})
+			return
 		}
-		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "Failed to delete variant"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete variant"})
+		return
 	}
-	return c.JSON(http.StatusNoContent, nil)
+	c.Status(http.StatusNoContent)
 }

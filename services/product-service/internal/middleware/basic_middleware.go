@@ -1,26 +1,29 @@
 package middleware
 
 import (
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
-func RegisterBasicMiddleware(e *echo.Echo) {
-	e.Pre(middleware.RemoveTrailingSlash())
+func RegisterBasicMiddleware(r *gin.Engine) {
+	// gin.Default() already includes Logger and Recovery middleware
+	// Add custom RequestID middleware
+	r.Use(RequestIDMiddleware())
+}
 
-	e.Use(middleware.Recover())
-	e.Use(middleware.RequestID())
-	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
-		Skipper: func(ctx echo.Context) bool {
-			return ctx.Path() == "/"
-		},
-		Format: "time: ${time_rfc3339_nano}\n" +
-			"method: ${method}\n" +
-			"uri: ${uri}\n" +
-			"status: ${status}\n" +
-			"user_agent: ${user_agent}\n" +
-			"latency: ${latency}\n" +
-			"bytes_out: ${bytes_out}\n\n",
-	}))
+// RequestIDMiddleware adds a unique request ID to each request
+func RequestIDMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Check if request ID already exists in header
+		requestID := c.GetHeader("X-Request-ID")
+		if requestID == "" {
+			requestID = uuid.New().String()
+		}
 
+		// Set request ID in context and response header
+		c.Set("RequestID", requestID)
+		c.Header("X-Request-ID", requestID)
+
+		c.Next()
+	}
 }

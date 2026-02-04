@@ -1,13 +1,13 @@
 package params
 
 type BaseQueryParam struct {
-	Limit  int `query:"limit"`
-	Offset int `query:"offset"`
+	Limit  int `form:"limit"`
+	Offset int `form:"offset"`
 }
 
 type ProductQueryParam struct {
 	BaseQueryParam
-	CategoryID string `query:"category_id"`
+	CategoryID string `form:"category_id"`
 }
 
 func NewProductQueryParam() *ProductQueryParam {
@@ -21,7 +21,7 @@ func NewProductQueryParam() *ProductQueryParam {
 
 type VariantQueryParam struct {
 	BaseQueryParam
-	ProductID string `query:"product_id"`
+	ProductID string `form:"product_id"`
 }
 
 func NewVariantQueryParam() *VariantQueryParam {

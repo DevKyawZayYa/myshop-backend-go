@@ -9,7 +9,7 @@ import (
 
 	"myshop-shared/pkg"
 
-	"github.com/labstack/echo/v4"
+	"github.com/gin-gonic/gin"
 )
 
 type ProductImageHandler struct {
@@ -20,10 +20,11 @@ func NewProductImageHandler(productImageUsecase *usecase.ProductImageUsecase) *P
 	return &ProductImageHandler{productImageUsecase: productImageUsecase}
 }
 
-func (h *ProductImageHandler) GetAllProductImages(c echo.Context) error {
-	images, err := h.productImageUsecase.GetAllProductImages(c.Request().Context())
+func (h *ProductImageHandler) GetAllProductImages(c *gin.Context) {
+	images, err := h.productImageUsecase.GetAllProductImages(c.Request.Context())
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "Failed to retrieve product images"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve product images"})
+		return
 	}
 
 	responses := make([]response.ProductImageResponse, len(images))
@@ -39,17 +40,19 @@ func (h *ProductImageHandler) GetAllProductImages(c echo.Context) error {
 		}
 	}
 
-	return c.JSON(http.StatusOK, echo.Map{"data": responses})
+	c.JSON(http.StatusOK, gin.H{"data": responses})
 }
 
-func (h *ProductImageHandler) GetProductImageByID(c echo.Context) error {
+func (h *ProductImageHandler) GetProductImageByID(c *gin.Context) {
 	id := c.Param("id")
-	image, err := h.productImageUsecase.GetProductImageByID(c.Request().Context(), id)
+	image, err := h.productImageUsecase.GetProductImageByID(c.Request.Context(), id)
 	if err != nil {
 		if errors.Is(err, pkg.ProductImageNotFound) {
-			return c.JSON(http.StatusNotFound, echo.Map{"message": "Product image not found"})
+			c.JSON(http.StatusNotFound, gin.H{"message": "Product image not found"})
+			return
 		}
-		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "Failed to retrieve product image"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve product image"})
+		return
 	}
 
 	resp := response.ProductImageResponse{
@@ -62,20 +65,22 @@ func (h *ProductImageHandler) GetProductImageByID(c echo.Context) error {
 		UpdatedAt: image.UpdatedAt,
 	}
 
-	return c.JSON(http.StatusOK, echo.Map{"data": resp})
+	c.JSON(http.StatusOK, gin.H{"data": resp})
 }
 
-func (h *ProductImageHandler) GetImagesByProductID(c echo.Context) error {
+func (h *ProductImageHandler) GetImagesByProductID(c *gin.Context) {
 	productID := c.Param("productId")
 
 	id := pkg.StringToUint(productID)
 	if id == 0 {
-		return c.JSON(http.StatusBadRequest, echo.Map{"message": "Invalid product ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid product ID"})
+		return
 	}
 
-	images, err := h.productImageUsecase.GetImagesByProductID(c.Request().Context(), id)
+	images, err := h.productImageUsecase.GetImagesByProductID(c.Request.Context(), id)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "Failed to retrieve product images"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve product images"})
+		return
 	}
 
 	responses := make([]response.ProductImageResponse, len(images))
@@ -91,20 +96,22 @@ func (h *ProductImageHandler) GetImagesByProductID(c echo.Context) error {
 		}
 	}
 
-	return c.JSON(http.StatusOK, echo.Map{"data": responses})
+	c.JSON(http.StatusOK, gin.H{"data": responses})
 }
 
-func (h *ProductImageHandler) GetImagesByVariantID(c echo.Context) error {
+func (h *ProductImageHandler) GetImagesByVariantID(c *gin.Context) {
 	variantID := c.Param("variantId")
 
 	id := pkg.StringToUint(variantID)
 	if id == 0 {
-		return c.JSON(http.StatusBadRequest, echo.Map{"message": "Invalid variant ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid variant ID"})
+		return
 	}
 
-	images, err := h.productImageUsecase.GetImagesByVariantID(c.Request().Context(), id)
+	images, err := h.productImageUsecase.GetImagesByVariantID(c.Request.Context(), id)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "Failed to retrieve variant images"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve variant images"})
+		return
 	}
 
 	responses := make([]response.ProductImageResponse, len(images))
@@ -120,19 +127,28 @@ func (h *ProductImageHandler) GetImagesByVariantID(c echo.Context) error {
 		}
 	}
 
-	return c.JSON(http.StatusOK, echo.Map{"data": responses})
+	c.JSON(http.StatusOK, gin.H{"data": responses})
 }
 
-func (h *ProductImageHandler) AddProductImage(c echo.Context, imageReq *request.ProductImageRequest) error {
-	image, err := h.productImageUsecase.AddProductImage(c.Request().Context(), imageReq)
+func (h *ProductImageHandler) AddProductImage(c *gin.Context) {
+	var imageReq request.ProductImageRequest
+	if err := c.ShouldBindJSON(&imageReq); err != nil {
+		pkg.HandleValidationError(c, err)
+		return
+	}
+
+	image, err := h.productImageUsecase.AddProductImage(c.Request.Context(), &imageReq)
 	if err != nil {
 		if errors.Is(err, pkg.ProductNotFound) {
-			return c.JSON(http.StatusNotFound, echo.Map{"message": "Product not found"})
+			c.JSON(http.StatusNotFound, gin.H{"message": "Product not found"})
+			return
 		}
 		if errors.Is(err, pkg.VariantNotFound) {
-			return c.JSON(http.StatusNotFound, echo.Map{"message": "Variant not found"})
+			c.JSON(http.StatusNotFound, gin.H{"message": "Variant not found"})
+			return
 		}
-		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "Failed to add product image"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to add product image"})
+		return
 	}
 
 	resp := response.ProductImageResponse{
@@ -145,18 +161,26 @@ func (h *ProductImageHandler) AddProductImage(c echo.Context, imageReq *request.
 		UpdatedAt: image.UpdatedAt,
 	}
 
-	return c.JSON(http.StatusCreated, echo.Map{"data": resp})
+	c.JSON(http.StatusCreated, gin.H{"data": resp})
 }
 
-func (h *ProductImageHandler) UpdateProductImage(c echo.Context, imageReq *request.ProductImagePatchRequest) error {
+func (h *ProductImageHandler) UpdateProductImage(c *gin.Context) {
 	id := c.Param("id")
 
-	image, err := h.productImageUsecase.UpdateProductImage(c.Request().Context(), id, imageReq)
+	var imageReq request.ProductImagePatchRequest
+	if err := c.ShouldBindJSON(&imageReq); err != nil {
+		pkg.HandleValidationError(c, err)
+		return
+	}
+
+	image, err := h.productImageUsecase.UpdateProductImage(c.Request.Context(), id, &imageReq)
 	if err != nil {
 		if errors.Is(err, pkg.NoFieldsToUpdate) {
-			return c.JSON(http.StatusBadRequest, echo.Map{"message": "No fields to update"})
+			c.JSON(http.StatusBadRequest, gin.H{"message": "No fields to update"})
+			return
 		}
-		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "Failed to update product image"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update product image"})
+		return
 	}
 
 	resp := response.ProductImageResponse{
@@ -169,16 +193,17 @@ func (h *ProductImageHandler) UpdateProductImage(c echo.Context, imageReq *reque
 		UpdatedAt: image.UpdatedAt,
 	}
 
-	return c.JSON(http.StatusOK, echo.Map{"data": resp})
+	c.JSON(http.StatusOK, gin.H{"data": resp})
 }
 
-func (h *ProductImageHandler) DeleteProductImage(c echo.Context) error {
+func (h *ProductImageHandler) DeleteProductImage(c *gin.Context) {
 	id := c.Param("id")
 
-	err := h.productImageUsecase.DeleteProductImage(c.Request().Context(), id)
+	err := h.productImageUsecase.DeleteProductImage(c.Request.Context(), id)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "Failed to delete product image"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete product image"})
+		return
 	}
 
-	return c.JSON(http.StatusOK, echo.Map{"message": "Product image deleted successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "Product image deleted successfully"})
 }

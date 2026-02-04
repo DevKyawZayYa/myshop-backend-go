@@ -1,0 +1,29 @@
+# Development environment Dockerfile
+FROM golang:1.24-alpine AS builder
+
+WORKDIR /workspace
+
+# Copy shared module
+COPY shared /workspace/shared
+
+# Copy product-service
+COPY services/product-service /workspace/services/product-service
+
+# Set working directory to product-service
+WORKDIR /workspace/services/product-service
+
+RUN go mod download
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/product-service .
+
+# Runtime image
+FROM alpine:latest
+
+RUN apk --no-cache add ca-certificates
+
+WORKDIR /app
+
+COPY --from=builder /app/product-service .
+
+EXPOSE 8081
+
+CMD ["./product-service", "server", "development"]

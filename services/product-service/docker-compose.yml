@@ -2,8 +2,8 @@ services:
   product-service:
     build:
       context: ../..
-      dockerfile: services/product-service/Dockerfile
-    image: product-service:latest
+      dockerfile: services/product-service/Dockerfile.local
+    image: product-service:local
     ports:
       - "8081:8081"
     volumes:

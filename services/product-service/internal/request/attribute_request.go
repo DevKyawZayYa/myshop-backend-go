@@ -1,7 +1,7 @@
 package request
 
 type AttributeRequest struct {
-	Name string `json:"name" validate:"required"`
+	Name string `json:"name" binding:"required"`
 }
 
 type AttributePatchRequest struct {
@@ -9,8 +9,8 @@ type AttributePatchRequest struct {
 }
 
 type AttributeValueRequest struct {
-	AttributeID uint   `json:"attribute_id" validate:"required"`
-	Value       string `json:"value" validate:"required"`
+	AttributeID uint   `json:"attribute_id" binding:"required"`
+	Value       string `json:"value" binding:"required"`
 }
 
 type AttributeValuePatchRequest struct {
