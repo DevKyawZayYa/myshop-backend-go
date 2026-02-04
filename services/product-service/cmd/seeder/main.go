@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	if err := godotenv.Load(".env.local"); err != nil {
+	if err := godotenv.Load("../../.env.local"); err != nil {
 		log.Println("Warning: .env.local file not found, using environment variables")
 	}
 }
@@ -36,7 +36,9 @@ func (s *DBSeeder) SeedCategory() ([]*entity.Category, error) {
 		}
 	}
 
-	s.db.Create(&categories)
+	if err := s.db.Create(&categories).Error; err != nil {
+		return nil, err
+	}
 
 	return categories, nil
 }
@@ -58,9 +60,10 @@ func (s *DBSeeder) SeedProduct(categories []*entity.Category, attributes []*enti
 
 	for i := 0; i < 50; i++ {
 		p := entity.Product{
-			Name:        "Product " + strconv.Itoa(i+1),
-			Description: "Description for Product " + strconv.Itoa(i+1),
-			BasePrice:   float64((i + 1) * 10),
+			Name:         "Product " + strconv.Itoa(i+1),
+			Description:  "Description for Product " + strconv.Itoa(i+1),
+			BasePrice:    float64((i + 1) * 10),
+			ComparePrice: float64((i + 1) * 12),
 		}
 
 		if err := tx.Create(&p).Error; err != nil {
@@ -68,11 +71,14 @@ func (s *DBSeeder) SeedProduct(categories []*entity.Category, attributes []*enti
 			return err
 		}
 
-		first := categories[i%len(categories)]
-		second := categories[(i+1)%len(categories)]
-		if err := tx.Model(&p).Association("Categories").Append(first, second); err != nil {
-			tx.Rollback()
-			return err
+		// Associate categories with product
+		if len(categories) > 0 {
+			first := categories[i%len(categories)]
+			second := categories[(i+1)%len(categories)]
+			if err := tx.Model(&p).Association("Categories").Append(first, second); err != nil {
+				tx.Rollback()
+				return err
+			}
 		}
 
 		// Associate random attributes with the product
@@ -81,11 +87,23 @@ func (s *DBSeeder) SeedProduct(categories []*entity.Category, attributes []*enti
 			selectedAttrs := make([]*entity.Attribute, 0)
 			for j := 0; j < attrCount && j < len(attributes); j++ {
 				idx := rand.Intn(len(attributes))
-				selectedAttrs = append(selectedAttrs, attributes[idx])
+				// Avoid duplicates
+				isDuplicate := false
+				for _, attr := range selectedAttrs {
+					if attr.ID == attributes[idx].ID {
+						isDuplicate = true
+						break
+					}
+				}
+				if !isDuplicate {
+					selectedAttrs = append(selectedAttrs, attributes[idx])
+				}
 			}
-			if err := tx.Model(&p).Association("Attributes").Append(selectedAttrs); err != nil {
-				tx.Rollback()
-				return err
+			if len(selectedAttrs) > 0 {
+				if err := tx.Model(&p).Association("Attributes").Append(selectedAttrs); err != nil {
+					tx.Rollback()
+					return err
+				}
 			}
 		}
 
@@ -108,17 +126,19 @@ func (s *DBSeeder) SeedProduct(categories []*entity.Category, attributes []*enti
 }
 
 func (s *DBSeeder) SeedAttributes() ([]*entity.Attribute, error) {
-	attriubtes := make([]*entity.Attribute, 10)
+	attributes := make([]*entity.Attribute, 10)
 
-	for i := range attriubtes {
-		attriubtes[i] = &entity.Attribute{
+	for i := range attributes {
+		attributes[i] = &entity.Attribute{
 			Name: "Attribute " + strconv.Itoa(i+1),
 		}
 	}
 
-	s.db.Create(&attriubtes)
+	if err := s.db.Create(&attributes).Error; err != nil {
+		return nil, err
+	}
 
-	return attriubtes, nil
+	return attributes, nil
 }
 
 func (s *DBSeeder) SeedAttributeValue(attributes []*entity.Attribute) error {
@@ -138,7 +158,9 @@ func (s *DBSeeder) SeedAttributeValue(attributes []*entity.Attribute) error {
 			Value:       "Value " + strconv.Itoa(i+1),
 		}
 		if err := s.db.Create(&av).Error; err != nil {
-			return err
+			log.Printf("Warning: Failed to create attribute value: %v", err)
+			// Continue with next iteration even if this one fails (to handle duplicates)
+			continue
 		}
 	}
 	return nil
@@ -162,7 +184,9 @@ func (s *DBSeeder) SeedAttributeValuesWithReturn(attributes []*entity.Attribute)
 			Value:       "Value " + strconv.Itoa(i+1),
 		}
 		if err := s.db.Create(&av).Error; err != nil {
-			return nil, err
+			log.Printf("Warning: Failed to create attribute value: %v", err)
+			// Continue with next iteration even if this one fails (to handle duplicates)
+			continue
 		}
 		attributeValues = append(attributeValues, av)
 	}
@@ -190,7 +214,8 @@ func (s *DBSeeder) SeedVariants(attributeValues []*entity.AttributeValue) error 
 			}
 
 			if err := s.db.Create(&variant).Error; err != nil {
-				return err
+				log.Printf("Warning: Failed to create variant: %v", err)
+				continue
 			}
 
 			// Associate random attribute values with the variant
@@ -199,11 +224,23 @@ func (s *DBSeeder) SeedVariants(attributeValues []*entity.AttributeValue) error 
 				selectedAttrs := make([]*entity.AttributeValue, 0)
 				for k := 0; k < attrCount && k < len(attributeValues); k++ {
 					idx := rand.Intn(len(attributeValues))
-					selectedAttrs = append(selectedAttrs, attributeValues[idx])
+					// Avoid duplicates
+					isDuplicate := false
+					for _, av := range selectedAttrs {
+						if av.ID == attributeValues[idx].ID {
+							isDuplicate = true
+							break
+						}
+					}
+					if !isDuplicate {
+						selectedAttrs = append(selectedAttrs, attributeValues[idx])
+					}
 				}
 
-				if err := s.db.Model(variant).Association("AttributeValues").Append(selectedAttrs); err != nil {
-					return err
+				if len(selectedAttrs) > 0 {
+					if err := s.db.Model(variant).Association("AttributeValues").Append(selectedAttrs); err != nil {
+						log.Printf("Warning: Failed to associate attribute values with variant: %v", err)
+					}
 				}
 			}
 
@@ -217,7 +254,7 @@ func (s *DBSeeder) SeedVariants(attributeValues []*entity.AttributeValue) error 
 					IsDefault: k == 0,
 				}
 				if err := s.db.Create(&image).Error; err != nil {
-					return err
+					log.Printf("Warning: Failed to create variant image: %v", err)
 				}
 			}
 		}
@@ -256,20 +293,56 @@ func (s *DBSeeder) Clear() error {
 }
 
 func (s *DBSeeder) Seed() error {
-	categories, _ := s.SeedCategory()
+	categories, err := s.SeedCategory()
+	if err != nil {
+		return err
+	}
 
-	attributes, _ := s.SeedAttributes()
-	s.SeedProduct(categories, attributes)
+	attributes, err := s.SeedAttributes()
+	if err != nil {
+		return err
+	}
 
-	attributeValues, _ := s.SeedAttributeValuesWithReturn(attributes)
-	s.SeedVariants(attributeValues)
+	if err := s.SeedProduct(categories, attributes); err != nil {
+		return err
+	}
+
+	attributeValues, err := s.SeedAttributeValuesWithReturn(attributes)
+	if err != nil {
+		return err
+	}
+
+	if err := s.SeedVariants(attributeValues); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func main() {
 	db := config.ConnectDB()
+
+	// Auto-migrate the entities
+	if err := db.AutoMigrate(
+		&entity.Category{},
+		&entity.Attribute{},
+		&entity.AttributeValue{},
+		&entity.Product{},
+		&entity.ProductImage{},
+		&entity.Variant{},
+	); err != nil {
+		log.Fatalf("Failed to auto-migrate: %v", err)
+	}
+
 	s := NewDBSeeder(db)
 
-	s.Clear()
-	s.Seed()
+	if err := s.Clear(); err != nil {
+		log.Fatalf("Failed to clear database: %v", err)
+	}
+
+	if err := s.Seed(); err != nil {
+		log.Fatalf("Failed to seed database: %v", err)
+	}
+
+	log.Println("Database seeded successfully!")
 }
