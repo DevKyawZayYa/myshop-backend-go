@@ -9,7 +9,7 @@ import (
 
 	"myshop-shared/pkg"
 
-	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/go-sql-driver/mysql"
 	"gorm.io/gorm"
 )
 
@@ -95,8 +95,8 @@ func (r *VariantRepository) AddVariant(ctx context.Context, variantReq *request.
 		}
 
 		if err := tx.Create(&variant).Error; err != nil {
-			var pgErr *pgconn.PgError
-			if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			var mysqlErr *mysql.MySQLError
+			if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
 				return pkg.DuplicateEntry
 			}
 			return err
@@ -192,8 +192,8 @@ func (r *VariantRepository) UpdateVariant(ctx context.Context, id string, varian
 		if len(updates) > 0 {
 			result := tx.Model(&variant).Updates(updates)
 			if result.Error != nil {
-				var pgErr *pgconn.PgError
-				if errors.As(result.Error, &pgErr) && pgErr.Code == "23505" {
+				var mysqlErr *mysql.MySQLError
+				if errors.As(result.Error, &mysqlErr) && mysqlErr.Number == 1062 {
 					return pkg.DuplicateEntry
 				}
 				return result.Error

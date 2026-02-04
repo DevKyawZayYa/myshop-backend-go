@@ -7,7 +7,7 @@ import (
 
 	"myshop-shared/pkg"
 
-	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/go-sql-driver/mysql"
 	"gorm.io/gorm"
 )
 
@@ -52,8 +52,8 @@ func (r *AttributeRepository) GetAttributeByID(id string) (*entity.Attribute, er
 func (r *AttributeRepository) AddAttribute(attr *request.AttributeRequest) error {
 	a := entity.Attribute{Name: pkg.CapitalizeFirstLetter(attr.Name)}
 	if err := r.db.Create(&a).Error; err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		var mysqlErr *mysql.MySQLError
+		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
 			return pkg.DuplicateEntry
 		}
 		return err
@@ -76,8 +76,8 @@ func (r *AttributeRepository) UpdateAttribute(id string, attr *request.Attribute
 	}
 
 	if err := r.db.Model(&entity.Attribute{}).Where("id = ?", id).Updates(updates).Error; err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		var mysqlErr *mysql.MySQLError
+		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
 			return nil, pkg.DuplicateEntry
 		}
 		return nil, err

@@ -1,9 +1,10 @@
 package server
 
 import (
+	"fmt"
+	"os"
 	"product-service/config"
 	router "product-service/internal"
-	"product-service/internal/entity"
 	"product-service/internal/middleware"
 
 	"myshop-shared/pkg"
@@ -15,12 +16,12 @@ func StartServer() {
 	db := config.ConnectDB()
 
 	db.AutoMigrate(
-		&entity.Category{},
-		&entity.Product{},
-		&entity.Attribute{},
-		&entity.AttributeValue{},
-		&entity.Variant{},
-		&entity.ProductImage{},
+	// &entity.Category{},
+	// &entity.Product{},
+	// &entity.Attribute{},
+	// &entity.AttributeValue{},
+	// &entity.Variant{},
+	// &entity.ProductImage{},
 	)
 
 	r := gin.Default()
@@ -40,5 +41,5 @@ func StartServer() {
 	router.RegisterVariantRoutes(r, db)
 	router.RegisterProductImageRoutes(r, db)
 
-	r.Run(":8081")
+	r.Run(fmt.Sprintf(":%s", os.Getenv("APP_PORT")))
 }

@@ -8,7 +8,7 @@ import (
 
 	"myshop-shared/pkg"
 
-	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/go-sql-driver/mysql"
 	"gorm.io/gorm"
 )
 
@@ -77,8 +77,8 @@ func (r *AttributeValueRepository) AddAttributeValue(avReq *request.AttributeVal
 		Value:       pkg.CapitalizeFirstLetter(avReq.Value),
 	}
 	if err := r.db.Create(&av).Error; err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		var mysqlErr *mysql.MySQLError
+		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
 			return pkg.DuplicateEntry
 		}
 		return err
@@ -107,8 +107,8 @@ func (r *AttributeValueRepository) UpdateAttributeValue(id string, avReq *reques
 	}
 
 	if err := r.db.Model(&entity.AttributeValue{}).Where("id = ?", id).Updates(updates).Error; err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		var mysqlErr *mysql.MySQLError
+		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
 			return nil, pkg.DuplicateEntry
 		}
 		return nil, err

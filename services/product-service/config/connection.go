@@ -5,10 +5,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/labstack/gommon/log"
-	"gorm.io/driver/postgres"
+	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -18,18 +16,7 @@ func ConnectDB() *gorm.DB {
 
 	log.Printf("Connecting to database with DSN: %s", dsn)
 
-	cfg, err := pgx.ParseConfig(dsn)
-	if err != nil {
-		log.Fatalf("Failed to parse DSN: %v", err)
-	}
-
-	cfg.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
-
-	sqlDB := stdlib.OpenDB(*cfg)
-
-	db, err := gorm.Open(postgres.New(postgres.Config{
-		Conn: sqlDB,
-	}), &gorm.Config{
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
 		Logger:      logger.Default.LogMode(logger.Info),
 		PrepareStmt: false,
 	})
@@ -54,13 +41,12 @@ func getDSN() string {
 	user := os.Getenv("DB_USER")
 	password := os.Getenv("DB_PASSWORD")
 	dbname := os.Getenv("DB_NAME")
-	sslmode := os.Getenv("SSL_MODE")
-	if sslmode == "" {
-		sslmode = "require"
+	if port == "" {
+		port = "3306"
 	}
 
 	return fmt.Sprintf(
-		"user=%s password=%s host=%s port=%s dbname=%s sslmode=%s",
-		user, password, host, port, dbname, sslmode,
+		"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		user, password, host, port, dbname,
 	)
 }

@@ -8,7 +8,7 @@ import (
 
 	"myshop-shared/pkg"
 
-	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/go-sql-driver/mysql"
 	"gorm.io/gorm"
 )
 
@@ -87,8 +87,8 @@ func (r *CategoryRepository) AddCategory(category *request.CategoryRequest) erro
 	}
 	err := r.db.Create(&cat).Error
 	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		var mysqlErr *mysql.MySQLError
+		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
 			return pkg.DuplicateEntry
 		}
 		return err
@@ -112,8 +112,8 @@ func (r *CategoryRepository) UpdateCategory(id string, category *request.Categor
 	}
 
 	if err := r.db.Model(&entity.Category{}).Where("id = ?", id).Updates(category).Error; err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		var mysqlErr *mysql.MySQLError
+		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
 			return nil, pkg.DuplicateEntry
 		}
 		return nil, err
