@@ -17,90 +17,187 @@ func RegisterHealthCheckRoute(r *gin.Engine) {
 }
 
 func RegisterCategoryRoutes(r *gin.Engine, db *gorm.DB) {
-	categoryGroup := r.Group("/product/categories")
-
 	categoryRepo := repository.NewCategoryRepository(db)
 	categoryUsecase := usecase.NewCategoryUsecase(categoryRepo)
 	categoryHandler := handler.NewCategoryHandler(categoryUsecase)
 
-	categoryGroup.GET("", categoryHandler.GetAllCategories)
-	categoryGroup.GET("/:id", categoryHandler.GetCategoryByID)
-	categoryGroup.POST("", categoryHandler.AddCategory)
-	categoryGroup.PATCH("/:id", categoryHandler.PatchCategory)
-	categoryGroup.DELETE("/:id", categoryHandler.DeleteCategory)
-	categoryGroup.GET("/tree", categoryHandler.GetCategoryTree)
-	categoryGroup.GET("/leaf", categoryHandler.GetLeafCategories)
-	categoryGroup.GET("/:id/children", categoryHandler.GetChildCategoriesByID)
+	// Public category routes
+	publicCategoryGroup := r.Group("/product/categories")
+	{
+		// Get hierarchical category tree for frontend navigation
+		publicCategoryGroup.GET("/tree", categoryHandler.GetCategoryTree)
+
+		// Get leaf categories (categories without children)
+		publicCategoryGroup.GET("/leaf", categoryHandler.GetLeafCategories)
+
+		// Get specific category by ID
+		publicCategoryGroup.GET("/:id", categoryHandler.GetCategoryByID)
+
+		// Get child categories of a specific category
+		publicCategoryGroup.GET("/:id/children", categoryHandler.GetChildCategoriesByID)
+	}
+
+	// Admin category routes (protected by middleware in production)
+	adminCategoryGroup := r.Group("/product/admin/categories")
+	{
+		// Create new category
+		adminCategoryGroup.POST("", categoryHandler.AddCategory)
+
+		// Update category
+		adminCategoryGroup.PATCH("/:id", categoryHandler.PatchCategory)
+
+		// Delete category
+		adminCategoryGroup.DELETE("/:id", categoryHandler.DeleteCategory)
+	}
 }
 
 func RegisterProductRoutes(r *gin.Engine, db *gorm.DB) {
-	productGroup := r.Group("/product/products")
-
 	productRepo := repository.NewProductRepository(db)
 	productUsecase := usecase.NewProductUsecase(productRepo)
 	productHandler := handler.NewProductHandler(productUsecase)
 
-	productGroup.GET("", productHandler.GetAllProducts)
-	productGroup.GET("/:id", productHandler.GetProductByID)
-	productGroup.POST("", productHandler.AddProduct)
-	productGroup.PATCH("/:id", productHandler.PatchProduct)
-	productGroup.DELETE("/:id", productHandler.DeleteProduct)
+	// Public product routes
+	publicProductGroup := r.Group("/product/products")
+	{
+		// Get all products with filtering and pagination
+		publicProductGroup.GET("", productHandler.GetAllProducts)
+
+		// Get specific product by ID
+		publicProductGroup.GET("/:id", productHandler.GetProductByID)
+	}
+
+	// Admin product routes (protected by middleware in production)
+	adminProductGroup := r.Group("/product/admin/products")
+	{
+		// Create new product
+		adminProductGroup.POST("", productHandler.AddProduct)
+
+		// Update product
+		adminProductGroup.PATCH("/:id", productHandler.PatchProduct)
+
+		// Delete product
+		adminProductGroup.DELETE("/:id", productHandler.DeleteProduct)
+	}
 }
 
 func RegisterAttributeRoutes(r *gin.Engine, db *gorm.DB) {
-	attributeGroup := r.Group("/product/attributes")
-
 	attributeRepo := repository.NewAttributeRepository(db)
 	attributeUsecase := usecase.NewAttributeUsecase(attributeRepo)
 	attributeHandler := handler.NewAttributeHandler(attributeUsecase)
 
-	attributeGroup.GET("", attributeHandler.GetAllAttributes)
-	attributeGroup.GET("/:id", attributeHandler.GetAttributeByID)
-	attributeGroup.POST("", attributeHandler.AddAttribute)
-	attributeGroup.PATCH("/:id", attributeHandler.PatchAttribute)
-	attributeGroup.DELETE("/:id", attributeHandler.DeleteAttribute)
+	// Public attribute routes
+	publicAttributeGroup := r.Group("/product/attributes")
+	{
+		// Get all attributes
+		publicAttributeGroup.GET("", attributeHandler.GetAllAttributes)
+
+		// Get specific attribute by ID
+		publicAttributeGroup.GET("/:id", attributeHandler.GetAttributeByID)
+	}
+
+	// Admin attribute routes (protected by middleware in production)
+	adminAttributeGroup := r.Group("/product/admin/attributes")
+	{
+		// Create new attribute
+		adminAttributeGroup.POST("", attributeHandler.AddAttribute)
+
+		// Update attribute
+		adminAttributeGroup.PATCH("/:id", attributeHandler.PatchAttribute)
+
+		// Delete attribute
+		adminAttributeGroup.DELETE("/:id", attributeHandler.DeleteAttribute)
+	}
 }
 
 func RegisterAttributeValueRoutes(r *gin.Engine, db *gorm.DB) {
-	attributeValueGroup := r.Group("/product/attribute-values")
-
 	attributeValueRepo := repository.NewAttributeValueRepository(db)
 	attributeValueUsecase := usecase.NewAttributeValueUsecase(attributeValueRepo)
 	attributeValueHandler := handler.NewAttributeValueHandler(attributeValueUsecase)
 
-	attributeValueGroup.GET("", attributeValueHandler.GetAllAttributeValues)
-	attributeValueGroup.GET("/:id", attributeValueHandler.GetAttributeValueByID)
-	attributeValueGroup.POST("", attributeValueHandler.AddAttributeValue)
-	attributeValueGroup.PATCH("/:id", attributeValueHandler.PatchAttributeValue)
-	attributeValueGroup.DELETE("/:id", attributeValueHandler.DeleteAttributeValue)
+	// Public attribute value routes
+	publicAttributeValueGroup := r.Group("/product/attribute-values")
+	{
+		// Get all attribute values
+		publicAttributeValueGroup.GET("", attributeValueHandler.GetAllAttributeValues)
+
+		// Get specific attribute value by ID
+		publicAttributeValueGroup.GET("/:id", attributeValueHandler.GetAttributeValueByID)
+	}
+
+	// Admin attribute value routes (protected by middleware in production)
+	adminAttributeValueGroup := r.Group("/product/admin/attribute-values")
+	{
+		// Create new attribute value
+		adminAttributeValueGroup.POST("", attributeValueHandler.AddAttributeValue)
+
+		// Update attribute value
+		adminAttributeValueGroup.PATCH("/:id", attributeValueHandler.PatchAttributeValue)
+
+		// Delete attribute value
+		adminAttributeValueGroup.DELETE("/:id", attributeValueHandler.DeleteAttributeValue)
+	}
 }
 
 func RegisterVariantRoutes(r *gin.Engine, db *gorm.DB) {
-	variantGroup := r.Group("/product/variants")
-
 	variantRepo := repository.NewVariantRepository(db)
 	variantUsecase := usecase.NewVariantUsecase(variantRepo)
 	variantHandler := handler.NewVariantHandler(variantUsecase)
 
-	variantGroup.GET("", variantHandler.GetAllVariants)
-	variantGroup.GET("/:id", variantHandler.GetVariantByID)
-	variantGroup.POST("", variantHandler.AddVariant)
-	variantGroup.PATCH("/:id", variantHandler.PatchVariant)
-	variantGroup.DELETE("/:id", variantHandler.DeleteVariant)
+	// Public variant routes
+	publicVariantGroup := r.Group("/product/variants")
+	{
+		// Get all variants with filtering and pagination
+		publicVariantGroup.GET("", variantHandler.GetAllVariants)
+
+		// Get specific variant by ID
+		publicVariantGroup.GET("/:id", variantHandler.GetVariantByID)
+	}
+
+	// Admin variant routes (protected by middleware in production)
+	adminVariantGroup := r.Group("/product/admin/variants")
+	{
+		// Create new variant
+		adminVariantGroup.POST("", variantHandler.AddVariant)
+
+		// Update variant
+		adminVariantGroup.PATCH("/:id", variantHandler.PatchVariant)
+
+		// Delete variant
+		adminVariantGroup.DELETE("/:id", variantHandler.DeleteVariant)
+	}
 }
 
 func RegisterProductImageRoutes(r *gin.Engine, db *gorm.DB) {
-	productImageGroup := r.Group("/product/product-images")
-
 	productImageRepo := repository.NewProductImageRepository(db)
 	productImageUsecase := usecase.NewProductImageUsecase(productImageRepo)
 	productImageHandler := handler.NewProductImageHandler(productImageUsecase)
 
-	productImageGroup.GET("", productImageHandler.GetAllProductImages)
-	productImageGroup.GET("/:id", productImageHandler.GetProductImageByID)
-	productImageGroup.GET("/product/:productId", productImageHandler.GetImagesByProductID)
-	productImageGroup.GET("/variant/:variantId", productImageHandler.GetImagesByVariantID)
-	productImageGroup.POST("", productImageHandler.AddProductImage)
-	productImageGroup.PATCH("/:id", productImageHandler.UpdateProductImage)
-	productImageGroup.DELETE("/:id", productImageHandler.DeleteProductImage)
+	// Public product image routes
+	publicImageGroup := r.Group("/product/product-images")
+	{
+		// Get all product images
+		publicImageGroup.GET("", productImageHandler.GetAllProductImages)
+
+		// Get specific product image by ID
+		publicImageGroup.GET("/:id", productImageHandler.GetProductImageByID)
+
+		// Get images for a specific product
+		publicImageGroup.GET("/product/:productId", productImageHandler.GetImagesByProductID)
+
+		// Get images for a specific variant
+		publicImageGroup.GET("/variant/:variantId", productImageHandler.GetImagesByVariantID)
+	}
+
+	// Admin product image routes (protected by middleware in production)
+	adminImageGroup := r.Group("/product/admin/product-images")
+	{
+		// Add new product image
+		adminImageGroup.POST("", productImageHandler.AddProductImage)
+
+		// Update product image
+		adminImageGroup.PATCH("/:id", productImageHandler.UpdateProductImage)
+
+		// Delete product image
+		adminImageGroup.DELETE("/:id", productImageHandler.DeleteProductImage)
+	}
 }
