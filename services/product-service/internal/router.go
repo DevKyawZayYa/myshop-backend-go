@@ -16,7 +16,7 @@ func RegisterHealthCheckRoute(r *gin.Engine) {
 	})
 }
 
-func RegisterCategoryRoutes(r *gin.Engine, db *gorm.DB) {
+func RegisterCategoryRoutes(r *gin.Engine, db *gorm.DB, adminAuth gin.HandlerFunc) {
 	categoryRepo := repository.NewCategoryRepository(db)
 	categoryUsecase := usecase.NewCategoryUsecase(categoryRepo)
 	categoryHandler := handler.NewCategoryHandler(categoryUsecase)
@@ -39,6 +39,9 @@ func RegisterCategoryRoutes(r *gin.Engine, db *gorm.DB) {
 
 	// Admin category routes (protected by middleware in production)
 	adminCategoryGroup := r.Group("/product/admin/categories")
+	if adminAuth != nil {
+		adminCategoryGroup.Use(adminAuth)
+	}
 	{
 		// Create new category
 		adminCategoryGroup.POST("", categoryHandler.AddCategory)
@@ -51,7 +54,7 @@ func RegisterCategoryRoutes(r *gin.Engine, db *gorm.DB) {
 	}
 }
 
-func RegisterProductRoutes(r *gin.Engine, db *gorm.DB) {
+func RegisterProductRoutes(r *gin.Engine, db *gorm.DB, adminAuth gin.HandlerFunc) {
 	productRepo := repository.NewProductRepository(db)
 	productUsecase := usecase.NewProductUsecase(productRepo)
 	productHandler := handler.NewProductHandler(productUsecase)
@@ -68,6 +71,9 @@ func RegisterProductRoutes(r *gin.Engine, db *gorm.DB) {
 
 	// Admin product routes (protected by middleware in production)
 	adminProductGroup := r.Group("/product/admin/products")
+	if adminAuth != nil {
+		adminProductGroup.Use(adminAuth)
+	}
 	{
 		// Create new product
 		adminProductGroup.POST("", productHandler.AddProduct)
@@ -80,7 +86,7 @@ func RegisterProductRoutes(r *gin.Engine, db *gorm.DB) {
 	}
 }
 
-func RegisterAttributeRoutes(r *gin.Engine, db *gorm.DB) {
+func RegisterAttributeRoutes(r *gin.Engine, db *gorm.DB, adminAuth gin.HandlerFunc) {
 	attributeRepo := repository.NewAttributeRepository(db)
 	attributeUsecase := usecase.NewAttributeUsecase(attributeRepo)
 	attributeHandler := handler.NewAttributeHandler(attributeUsecase)
@@ -97,6 +103,9 @@ func RegisterAttributeRoutes(r *gin.Engine, db *gorm.DB) {
 
 	// Admin attribute routes (protected by middleware in production)
 	adminAttributeGroup := r.Group("/product/admin/attributes")
+	if adminAuth != nil {
+		adminAttributeGroup.Use(adminAuth)
+	}
 	{
 		// Create new attribute
 		adminAttributeGroup.POST("", attributeHandler.AddAttribute)
@@ -109,7 +118,7 @@ func RegisterAttributeRoutes(r *gin.Engine, db *gorm.DB) {
 	}
 }
 
-func RegisterAttributeValueRoutes(r *gin.Engine, db *gorm.DB) {
+func RegisterAttributeValueRoutes(r *gin.Engine, db *gorm.DB, adminAuth gin.HandlerFunc) {
 	attributeValueRepo := repository.NewAttributeValueRepository(db)
 	attributeValueUsecase := usecase.NewAttributeValueUsecase(attributeValueRepo)
 	attributeValueHandler := handler.NewAttributeValueHandler(attributeValueUsecase)
@@ -126,6 +135,9 @@ func RegisterAttributeValueRoutes(r *gin.Engine, db *gorm.DB) {
 
 	// Admin attribute value routes (protected by middleware in production)
 	adminAttributeValueGroup := r.Group("/product/admin/attribute-values")
+	if adminAuth != nil {
+		adminAttributeValueGroup.Use(adminAuth)
+	}
 	{
 		// Create new attribute value
 		adminAttributeValueGroup.POST("", attributeValueHandler.AddAttributeValue)
@@ -138,7 +150,7 @@ func RegisterAttributeValueRoutes(r *gin.Engine, db *gorm.DB) {
 	}
 }
 
-func RegisterVariantRoutes(r *gin.Engine, db *gorm.DB) {
+func RegisterVariantRoutes(r *gin.Engine, db *gorm.DB, adminAuth gin.HandlerFunc) {
 	variantRepo := repository.NewVariantRepository(db)
 	variantUsecase := usecase.NewVariantUsecase(variantRepo)
 	variantHandler := handler.NewVariantHandler(variantUsecase)
@@ -155,6 +167,9 @@ func RegisterVariantRoutes(r *gin.Engine, db *gorm.DB) {
 
 	// Admin variant routes (protected by middleware in production)
 	adminVariantGroup := r.Group("/product/admin/variants")
+	if adminAuth != nil {
+		adminVariantGroup.Use(adminAuth)
+	}
 	{
 		// Create new variant
 		adminVariantGroup.POST("", variantHandler.AddVariant)
@@ -167,7 +182,7 @@ func RegisterVariantRoutes(r *gin.Engine, db *gorm.DB) {
 	}
 }
 
-func RegisterProductImageRoutes(r *gin.Engine, db *gorm.DB) {
+func RegisterProductImageRoutes(r *gin.Engine, db *gorm.DB, adminAuth gin.HandlerFunc) {
 	productImageRepo := repository.NewProductImageRepository(db)
 	productImageUsecase := usecase.NewProductImageUsecase(productImageRepo)
 	productImageHandler := handler.NewProductImageHandler(productImageUsecase)
@@ -190,6 +205,9 @@ func RegisterProductImageRoutes(r *gin.Engine, db *gorm.DB) {
 
 	// Admin product image routes (protected by middleware in production)
 	adminImageGroup := r.Group("/product/admin/product-images")
+	if adminAuth != nil {
+		adminImageGroup.Use(adminAuth)
+	}
 	{
 		// Add new product image
 		adminImageGroup.POST("", productImageHandler.AddProductImage)

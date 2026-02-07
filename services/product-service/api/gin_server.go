@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"product-service/config"
 	router "product-service/internal"
@@ -32,14 +33,20 @@ func StartServer() {
 	// Register middleware
 	middleware.RegisterBasicMiddleware(r)
 
+	adminAuth, err := middleware.RegisterAuthMiddleware()
+
+	if err != nil {
+		log.Fatalf("failed to initialize cognito auth: %v", err)
+	}
+
 	// Register routes
 	router.RegisterHealthCheckRoute(r)
-	router.RegisterCategoryRoutes(r, db)
-	router.RegisterProductRoutes(r, db)
-	router.RegisterAttributeRoutes(r, db)
-	router.RegisterAttributeValueRoutes(r, db)
-	router.RegisterVariantRoutes(r, db)
-	router.RegisterProductImageRoutes(r, db)
+	router.RegisterCategoryRoutes(r, db, adminAuth)
+	router.RegisterProductRoutes(r, db, adminAuth)
+	router.RegisterAttributeRoutes(r, db, adminAuth)
+	router.RegisterAttributeValueRoutes(r, db, adminAuth)
+	router.RegisterVariantRoutes(r, db, adminAuth)
+	router.RegisterProductImageRoutes(r, db, adminAuth)
 
 	r.Run(fmt.Sprintf(":%s", os.Getenv("APP_PORT")))
 }

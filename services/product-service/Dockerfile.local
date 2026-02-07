@@ -18,4 +18,4 @@ WORKDIR /workspace/services/product-service
 RUN go mod download
 
 EXPOSE 8081
-CMD ["air"]
+CMD ["air", "local"]
