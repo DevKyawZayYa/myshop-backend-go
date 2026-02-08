@@ -3,6 +3,7 @@ package main
 import (
 	"net/http/httputil"
 	"net/url"
+	"os"
 
 	"github.com/gin-gonic/gin"
 )
@@ -18,9 +19,19 @@ func proxy(target string) gin.HandlerFunc {
 func main() {
 	r := gin.Default()
 
-	r.Any("/product/*", proxy("http://product-service:8081"))
+	productServiceURL := os.Getenv("PRODUCT_SERVICE_URL")
+	if productServiceURL == "" {
+		productServiceURL = "http://localhost:8080"
+	}
 
-	r.Any("/order/*", proxy("http://order-service:8082"))
+	orderServiceURL := os.Getenv("ORDER_SERVICE_URL")
+	if orderServiceURL == "" {
+		orderServiceURL = "http://localhost:8082"
+	}
 
-	r.Run(":8080")
+	r.Any("/product/*path", proxy(productServiceURL))
+
+	r.Any("/order/*path", proxy(orderServiceURL))
+
+	r.Run(":8000")
 }

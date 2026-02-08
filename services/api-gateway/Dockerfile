@@ -16,5 +16,5 @@ WORKDIR /workspace/services/api-gateway
 
 RUN go mod download
 
-EXPOSE 8080
+EXPOSE 8000
 CMD ["air"]
