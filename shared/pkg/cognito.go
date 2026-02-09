@@ -8,9 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/lestrrat-go/jwx/v2/jwk"
@@ -39,30 +36,21 @@ func (c CognitoConfig) validate() error {
 	return nil
 }
 
-func NewCognitoAdminMiddleware(cfg CognitoConfig) (gin.HandlerFunc, error) {
-	if err := cfg.validate(); err != nil {
-		return nil, err
-	}
-
+func setupCognitoResources(cfg CognitoConfig) (*jwk.Cache, string, string, error) {
 	issuer := fmt.Sprintf("https://cognito-idp.%s.amazonaws.com/%s", cfg.Region, cfg.UserPoolID)
 	jwksURL := fmt.Sprintf("%s/.well-known/jwks.json", issuer)
 
 	cache := jwk.NewCache(context.Background())
 	cache.Register(jwksURL)
 	if _, err := cache.Refresh(context.Background(), jwksURL); err != nil {
-		return nil, fmt.Errorf("refresh jwks: %w", err)
+		return nil, "", "", fmt.Errorf("refresh jwks: %w", err)
 	}
 
-	awsCfg, err := config.LoadDefaultConfig(
-		context.Background(),
-		config.WithRegion(cfg.Region),
-		config.WithCredentialsProvider(aws.AnonymousCredentials{}),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("load aws config: %w", err)
-	}
-	cognitoClient := cognitoidentityprovider.NewFromConfig(awsCfg)
+	return cache, issuer, jwksURL, nil
+}
 
+func newCognitoMiddleware(
+	cfg CognitoConfig, cache *jwk.Cache, issuer, jwksURL string, validateGroup func(jwt.MapClaims) error) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		accessToken, err := readBearerToken(c.Request)
 		if err != nil {
@@ -81,18 +69,51 @@ func NewCognitoAdminMiddleware(cfg CognitoConfig) (gin.HandlerFunc, error) {
 			return
 		}
 
-		if err := validateGroup(claims, cfg.RequiredGroup); err != nil {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": err.Error()})
-			return
-		}
-
-		if err := validateWithCognito(c.Request.Context(), cognitoClient, accessToken); err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
-			return
+		if validateGroup != nil {
+			if err := validateGroup(claims); err != nil {
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": err.Error()})
+				return
+			}
 		}
 
 		c.Next()
-	}, nil
+	}
+}
+
+func NewCognitoJWTMiddleware(cfg CognitoConfig) (gin.HandlerFunc, error) {
+	if strings.TrimSpace(cfg.Region) == "" {
+		return nil, errors.New("region is required")
+	}
+	if strings.TrimSpace(cfg.UserPoolID) == "" {
+		return nil, errors.New("user pool id is required")
+	}
+	if strings.TrimSpace(cfg.AppClientID) == "" {
+		return nil, errors.New("app client id is required")
+	}
+
+	cache, issuer, jwksURL, err := setupCognitoResources(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return newCognitoMiddleware(cfg, cache, issuer, jwksURL, nil), nil
+}
+
+func NewCognitoAdminMiddleware(cfg CognitoConfig) (gin.HandlerFunc, error) {
+	if err := cfg.validate(); err != nil {
+		return nil, err
+	}
+
+	cache, issuer, jwksURL, err := setupCognitoResources(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	groupValidator := func(claims jwt.MapClaims) error {
+		return validateGroup(claims, cfg.RequiredGroup)
+	}
+
+	return newCognitoMiddleware(cfg, cache, issuer, jwksURL, groupValidator), nil
 }
 
 func readBearerToken(r *http.Request) (string, error) {
@@ -205,15 +226,4 @@ func normalizeGroups(groups interface{}) []string {
 	default:
 		return nil
 	}
-}
-
-func validateWithCognito(ctx context.Context, client *cognitoidentityprovider.Client, accessToken string) error {
-	_, err := client.GetUser(ctx, &cognitoidentityprovider.GetUserInput{
-		AccessToken: aws.String(accessToken),
-	})
-	if err != nil {
-		return fmt.Errorf("cognito validation failed: %w", err)
-	}
-
-	return nil
 }

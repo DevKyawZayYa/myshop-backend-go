@@ -9,7 +9,21 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterAuthMiddleware() (gin.HandlerFunc, error) {
+func RegisterJWTMiddleware() (gin.HandlerFunc, error) {
+	cfg := pkg.CognitoConfig{
+		Region:      os.Getenv("COGNITO_REGION"),
+		UserPoolID:  os.Getenv("COGNITO_USER_POOL_ID"),
+		AppClientID: os.Getenv("COGNITO_APP_CLIENT_ID"),
+	}
+
+	if cfg.Region == "" || cfg.UserPoolID == "" || cfg.AppClientID == "" {
+		return nil, errors.New("missing required cognito env vars")
+	}
+
+	return pkg.NewCognitoJWTMiddleware(cfg)
+}
+
+func RegisterAdminAuthMiddleware() (gin.HandlerFunc, error) {
 	cfg := pkg.CognitoConfig{
 		Region:        os.Getenv("COGNITO_REGION"),
 		UserPoolID:    os.Getenv("COGNITO_USER_POOL_ID"),

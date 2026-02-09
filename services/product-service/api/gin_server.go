@@ -33,20 +33,24 @@ func StartServer() {
 	// Register middleware
 	middleware.RegisterBasicMiddleware(r)
 
-	adminAuth, err := middleware.RegisterAuthMiddleware()
-
+	jwtAuth, err := middleware.RegisterJWTMiddleware()
 	if err != nil {
-		log.Fatalf("failed to initialize cognito auth: %v", err)
+		log.Fatalf("failed to initialize cognito jwt auth: %v", err)
+	}
+
+	adminAuth, err := middleware.RegisterAdminAuthMiddleware()
+	if err != nil {
+		log.Fatalf("failed to initialize cognito admin auth: %v", err)
 	}
 
 	// Register routes
 	router.RegisterHealthCheckRoute(r)
-	router.RegisterCategoryRoutes(r, db, adminAuth)
-	router.RegisterProductRoutes(r, db, adminAuth)
-	router.RegisterAttributeRoutes(r, db, adminAuth)
-	router.RegisterAttributeValueRoutes(r, db, adminAuth)
-	router.RegisterVariantRoutes(r, db, adminAuth)
-	router.RegisterProductImageRoutes(r, db, adminAuth)
+	router.RegisterCategoryRoutes(r, db, jwtAuth, adminAuth)
+	router.RegisterProductRoutes(r, db, jwtAuth, adminAuth)
+	router.RegisterAttributeRoutes(r, db, jwtAuth, adminAuth)
+	router.RegisterAttributeValueRoutes(r, db, jwtAuth, adminAuth)
+	router.RegisterVariantRoutes(r, db, jwtAuth, adminAuth)
+	router.RegisterProductImageRoutes(r, db, jwtAuth, adminAuth)
 
 	r.Run(fmt.Sprintf(":%s", os.Getenv("APP_PORT")))
 }
