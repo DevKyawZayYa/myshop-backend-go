@@ -31,11 +31,11 @@ func (uc *ProductImageUsecase) GetImagesByVariantID(ctx context.Context, variant
 	return uc.productImageRepo.GetImagesByVariantID(ctx, variantID)
 }
 
-func (uc *ProductImageUsecase) AddProductImage(ctx context.Context, imageReq *request.ProductImageRequest) (*entity.ProductImage, error) {
+func (uc *ProductImageUsecase) AddProductImage(ctx context.Context, imageReq *request.ProductImageCreateRequest) (*entity.ProductImage, error) {
 	return uc.productImageRepo.AddProductImage(ctx, imageReq)
 }
 
-func (uc *ProductImageUsecase) UpdateProductImage(ctx context.Context, id string, imageReq *request.ProductImagePatchRequest) (*entity.ProductImage, error) {
+func (uc *ProductImageUsecase) UpdateProductImage(ctx context.Context, id string, imageReq *request.ProductImageUpdateRequest) (*entity.ProductImage, error) {
 	return uc.productImageRepo.UpdateProductImage(ctx, id, imageReq)
 }
 
@@ -43,6 +43,6 @@ func (uc *ProductImageUsecase) DeleteProductImage(ctx context.Context, id string
 	return uc.productImageRepo.DeleteProductImage(ctx, id)
 }
 
-func (uc *ProductImageUsecase) AddProductImageBatch(ctx context.Context, images []*request.ProductImageRequest) ([]*entity.ProductImage, error) {
+func (uc *ProductImageUsecase) AddProductImageBatch(ctx context.Context, images []*request.ProductImageCreateRequest) ([]*entity.ProductImage, error) {
 	return uc.productImageRepo.AddProductImageBatch(ctx, images)
 }

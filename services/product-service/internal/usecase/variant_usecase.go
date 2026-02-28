@@ -24,11 +24,11 @@ func (u *VariantUsecase) GetVariantByID(ctx context.Context, id string) (*entity
 	return u.variantRepo.GetVariantByID(ctx, id)
 }
 
-func (u *VariantUsecase) AddVariant(ctx context.Context, variant *request.VariantRequest) error {
+func (u *VariantUsecase) AddVariant(ctx context.Context, variant *request.VariantCreateRequest) error {
 	return u.variantRepo.AddVariant(ctx, variant)
 }
 
-func (u *VariantUsecase) UpdateVariant(ctx context.Context, id string, variant *request.VariantPatchRequest) (*entity.Variant, error) {
+func (u *VariantUsecase) UpdateVariant(ctx context.Context, id string, variant *request.VariantUpdateRequest) (*entity.Variant, error) {
 	return u.variantRepo.UpdateVariant(ctx, id, variant)
 }
 

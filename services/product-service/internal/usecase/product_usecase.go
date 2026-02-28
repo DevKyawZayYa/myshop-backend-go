@@ -24,11 +24,11 @@ func (u *ProductUsecase) GetProductByID(ctx context.Context, id string) (*entity
 	return u.productRepo.GetProductByID(ctx, id)
 }
 
-func (u *ProductUsecase) AddProduct(ctx context.Context, product *request.ProductRequest) error {
+func (u *ProductUsecase) AddProduct(ctx context.Context, product *request.ProductCreateRequest) error {
 	return u.productRepo.AddProduct(ctx, product)
 }
 
-func (u *ProductUsecase) UpdateProduct(ctx context.Context, id string, product *request.ProductPatchRequest) (*entity.Product, error) {
+func (u *ProductUsecase) UpdateProduct(ctx context.Context, id string, product *request.ProductUpdateRequest) (*entity.Product, error) {
 	return u.productRepo.UpdateProduct(ctx, id, product)
 }
 

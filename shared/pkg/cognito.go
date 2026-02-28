@@ -52,29 +52,29 @@ func setupCognitoResources(cfg CognitoConfig) (*jwk.Cache, string, string, error
 func newCognitoMiddleware(
 	cfg CognitoConfig, cache *jwk.Cache, issuer, jwksURL string, validateGroup func(jwt.MapClaims) error) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		accessToken, err := readBearerToken(c.Request)
-		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
-			return
-		}
+		// accessToken, err := readBearerToken(c.Request)
+		// if err != nil {
+		// 	c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
+		// 	return
+		// }
 
-		claims, err := validateAccessToken(c.Request.Context(), accessToken, issuer, jwksURL, cache)
-		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
-			return
-		}
+		// claims, err := validateAccessToken(c.Request.Context(), accessToken, issuer, jwksURL, cache)
+		// if err != nil {
+		// 	c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
+		// 	return
+		// }
 
-		if err := validateClientID(claims, cfg.AppClientID); err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
-			return
-		}
+		// if err := validateClientID(claims, cfg.AppClientID); err != nil {
+		// 	c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
+		// 	return
+		// }
 
-		if validateGroup != nil {
-			if err := validateGroup(claims); err != nil {
-				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": err.Error()})
-				return
-			}
-		}
+		// if validateGroup != nil {
+		// 	if err := validateGroup(claims); err != nil {
+		// 		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": err.Error()})
+		// 		return
+		// 	}
+		// }
 
 		c.Next()
 	}

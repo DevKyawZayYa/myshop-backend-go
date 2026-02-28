@@ -19,15 +19,15 @@ func (u *AttributeValueUsecase) GetAllAttributeValues() ([]entity.AttributeValue
 	return u.attributeValueRepo.GetAllAttributeValues()
 }
 
-func (u *AttributeValueUsecase) AddAttributeValue(avReq *request.AttributeValueRequest) error {
+func (u *AttributeValueUsecase) AddAttributeValue(avReq *request.AttributeValueCreateRequest) error {
 	return u.attributeValueRepo.AddAttributeValue(avReq)
 }
 
-func (u *AttributeValueUsecase) GetAttributeValueByID(id string) (*response.AttributeValueDetailResponse, error) {
+func (u *AttributeValueUsecase) GetAttributeValueByID(id string) (*response.AttributeValueResponse, error) {
 	return u.attributeValueRepo.GetAttributeValueByID(id)
 }
 
-func (u *AttributeValueUsecase) UpdateAttributeValue(id string, avReq *request.AttributeValuePatchRequest) (*response.AttributeValueDetailResponse, error) {
+func (u *AttributeValueUsecase) UpdateAttributeValue(id string, avReq *request.AttributeValueUpdateRequest) (*response.AttributeValueResponse, error) {
 	return u.attributeValueRepo.UpdateAttributeValue(id, avReq)
 }
 

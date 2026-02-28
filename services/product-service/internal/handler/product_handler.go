@@ -50,7 +50,7 @@ func (h *ProductHandler) GetProductByID(c *gin.Context) {
 }
 
 func (h *ProductHandler) AddProduct(c *gin.Context) {
-	var product request.ProductRequest
+	var product request.ProductCreateRequest
 	if err := c.ShouldBindJSON(&product); err != nil {
 		pkg.HandleValidationError(c, err)
 		return
@@ -76,7 +76,7 @@ func (h *ProductHandler) AddProduct(c *gin.Context) {
 func (h *ProductHandler) PatchProduct(c *gin.Context) {
 	id := c.Param("id")
 
-	var product request.ProductPatchRequest
+	var product request.ProductUpdateRequest
 	if err := c.ShouldBindJSON(&product); err != nil {
 		pkg.HandleValidationError(c, err)
 		return

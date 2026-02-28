@@ -53,13 +53,13 @@ func (r *AttributeValueRepository) GetAllAttributeValues() ([]entity.AttributeVa
 	return avs, nil
 }
 
-func (r *AttributeValueRepository) GetAttributeValueByID(id string) (*response.AttributeValueDetailResponse, error) {
+func (r *AttributeValueRepository) GetAttributeValueByID(id string) (*response.AttributeValueResponse, error) {
 	var av entity.AttributeValue
 	if err := r.db.First(&av, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
 
-	avr := &response.AttributeValueDetailResponse{
+	avr := &response.AttributeValueResponse{
 		ID:          av.ID,
 		AttributeID: av.AttributeID,
 		Value:       av.Value,
@@ -67,7 +67,7 @@ func (r *AttributeValueRepository) GetAttributeValueByID(id string) (*response.A
 	return avr, nil
 }
 
-func (r *AttributeValueRepository) AddAttributeValue(avReq *request.AttributeValueRequest) error {
+func (r *AttributeValueRepository) AddAttributeValue(avReq *request.AttributeValueCreateRequest) error {
 	if !r.CheckIfAttributeExists(avReq.AttributeID) {
 		return pkg.AttributeNotFound
 	}
@@ -86,21 +86,13 @@ func (r *AttributeValueRepository) AddAttributeValue(avReq *request.AttributeVal
 	return nil
 }
 
-func (r *AttributeValueRepository) UpdateAttributeValue(id string, avReq *request.AttributeValuePatchRequest) (*response.AttributeValueDetailResponse, error) {
+func (r *AttributeValueRepository) UpdateAttributeValue(id string, avReq *request.AttributeValueUpdateRequest) (*response.AttributeValueResponse, error) {
 	if !r.CheckIfAttributeValueExists(id) {
 		return nil, pkg.AttributeValueNotFound
 	}
 
 	updates := map[string]interface{}{}
-	if avReq.AttributeID != nil {
-		if !r.CheckIfAttributeExists(*avReq.AttributeID) {
-			return nil, pkg.AttributeNotFound
-		}
-		updates["attribute_id"] = *avReq.AttributeID
-	}
-	if avReq.Value != nil {
-		updates["value"] = pkg.CapitalizeFirstLetter(*avReq.Value)
-	}
+	updates["value"] = pkg.CapitalizeFirstLetter(avReq.Value)
 
 	if len(updates) == 0 {
 		return nil, pkg.NoFieldsToUpdate

@@ -44,7 +44,7 @@ func RegisterCategoryRoutes(r *gin.Engine, db *gorm.DB, jwtAuth gin.HandlerFunc,
 		adminCategoryGroup.POST("", categoryHandler.AddCategory)
 
 		// Update category
-		adminCategoryGroup.PATCH("/:id", categoryHandler.PatchCategory)
+		adminCategoryGroup.PUT("/:id", categoryHandler.UpdateCategory)
 
 		// Delete category
 		adminCategoryGroup.DELETE("/:id", categoryHandler.DeleteCategory)
@@ -102,7 +102,7 @@ func RegisterAttributeRoutes(r *gin.Engine, db *gorm.DB, jwtAuth gin.HandlerFunc
 		adminAttributeGroup.POST("", attributeHandler.AddAttribute)
 
 		// Update attribute
-		adminAttributeGroup.PATCH("/:id", attributeHandler.PatchAttribute)
+		adminAttributeGroup.PUT("/:id", attributeHandler.UpdateAttribute)
 
 		// Delete attribute
 		adminAttributeGroup.DELETE("/:id", attributeHandler.DeleteAttribute)
@@ -131,7 +131,7 @@ func RegisterAttributeValueRoutes(r *gin.Engine, db *gorm.DB, jwtAuth gin.Handle
 		adminAttributeValueGroup.POST("", attributeValueHandler.AddAttributeValue)
 
 		// Update attribute value
-		adminAttributeValueGroup.PATCH("/:id", attributeValueHandler.PatchAttributeValue)
+		adminAttributeValueGroup.PUT("/:id", attributeValueHandler.UpdateAttributeValue)
 
 		// Delete attribute value
 		adminAttributeValueGroup.DELETE("/:id", attributeValueHandler.DeleteAttributeValue)
@@ -160,7 +160,7 @@ func RegisterVariantRoutes(r *gin.Engine, db *gorm.DB, jwtAuth gin.HandlerFunc, 
 		adminVariantGroup.POST("", variantHandler.AddVariant)
 
 		// Update variant
-		adminVariantGroup.PATCH("/:id", variantHandler.PatchVariant)
+		adminVariantGroup.PUT("/:id", variantHandler.UpdateVariant)
 
 		// Delete variant
 		adminVariantGroup.DELETE("/:id", variantHandler.DeleteVariant)

@@ -49,7 +49,7 @@ func (r *AttributeRepository) GetAttributeByID(id string) (*entity.Attribute, er
 	return &a, nil
 }
 
-func (r *AttributeRepository) AddAttribute(attr *request.AttributeRequest) error {
+func (r *AttributeRepository) AddAttribute(attr *request.AttributeCreateRequest) error {
 	a := entity.Attribute{Name: pkg.CapitalizeFirstLetter(attr.Name)}
 	if err := r.db.Create(&a).Error; err != nil {
 		var mysqlErr *mysql.MySQLError
@@ -61,15 +61,13 @@ func (r *AttributeRepository) AddAttribute(attr *request.AttributeRequest) error
 	return nil
 }
 
-func (r *AttributeRepository) UpdateAttribute(id string, attr *request.AttributePatchRequest) (*entity.Attribute, error) {
+func (r *AttributeRepository) UpdateAttribute(id string, attr *request.AttributeUpdateRequest) (*entity.Attribute, error) {
 	if !r.CheckIfAttributeExists(id) {
 		return nil, pkg.AttributeNotFound
 	}
 
 	updates := map[string]interface{}{}
-	if attr.Name != nil {
-		updates["name"] = *attr.Name
-	}
+	updates["name"] = attr.Name
 
 	if len(updates) == 0 {
 		return nil, pkg.NoFieldsToUpdate

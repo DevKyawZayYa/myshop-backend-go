@@ -1,13 +1,13 @@
 package request
 
-type CategoryRequest struct {
+type CategoryCreateRequest struct {
 	Name        string `json:"name" binding:"required"`
-	Description string `json:"description,omitempty"`
+	Description string `json:"description"`
 	ParentID    *uint  `json:"parent_id,omitempty"`
 }
 
-type CategoryPatchRequest struct {
-	Name        *string `json:"name,omitempty"`
-	Description *string `json:"description,omitempty"`
-	ParentID    *uint   `json:"parent_id,omitempty"`
+type CategoryUpdateRequest struct {
+	Name        string `json:"name" binding:"required"`
+	Description string `json:"description"`
+	ParentID    *uint  `json:"parent_id,omitempty"`
 }

@@ -18,11 +18,11 @@ func (u *CategoryUsecase) GetAllCategories() ([]response.CategoryResponse, error
 	return u.categoryRepo.GetAllCategories()
 }
 
-func (u *CategoryUsecase) AddCategory(category *request.CategoryRequest) error {
+func (u *CategoryUsecase) AddCategory(category *request.CategoryCreateRequest) error {
 	return u.categoryRepo.AddCategory(category)
 }
 
-func (u *CategoryUsecase) UpdateCategory(id string, category *request.CategoryPatchRequest) (*response.CategoryResponse, error) {
+func (u *CategoryUsecase) UpdateCategory(id string, category *request.CategoryUpdateRequest) (*response.CategoryResponse, error) {
 	return u.categoryRepo.UpdateCategory(id, category)
 }
 

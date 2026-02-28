@@ -61,7 +61,7 @@ func (r *ProductImageRepository) GetImagesByVariantID(ctx context.Context, varia
 	return images, nil
 }
 
-func (r *ProductImageRepository) AddProductImage(ctx context.Context, imageReq *request.ProductImageRequest) (*entity.ProductImage, error) {
+func (r *ProductImageRepository) AddProductImage(ctx context.Context, imageReq *request.ProductImageCreateRequest) (*entity.ProductImage, error) {
 	// Verify product exists
 	var product entity.Product
 	if err := r.db.WithContext(ctx).First(&product, "id = ?", imageReq.ProductID).Error; err != nil {
@@ -96,18 +96,11 @@ func (r *ProductImageRepository) AddProductImage(ctx context.Context, imageReq *
 	return image, nil
 }
 
-func (r *ProductImageRepository) UpdateProductImage(ctx context.Context, id string, imageReq *request.ProductImagePatchRequest) (*entity.ProductImage, error) {
+func (r *ProductImageRepository) UpdateProductImage(ctx context.Context, id string, imageReq *request.ProductImageUpdateRequest) (*entity.ProductImage, error) {
 	updates := make(map[string]interface{})
 
-	if imageReq.VariantID != nil {
-		updates["variant_id"] = *imageReq.VariantID
-	}
-	if imageReq.URL != nil {
-		updates["url"] = *imageReq.URL
-	}
-	if imageReq.IsDefault != nil {
-		updates["is_default"] = *imageReq.IsDefault
-	}
+	updates["url"] = imageReq.URL
+	updates["is_default"] = imageReq.IsDefault
 
 	if len(updates) == 0 {
 		return nil, pkg.NoFieldsToUpdate
@@ -137,7 +130,7 @@ func (r *ProductImageRepository) DeleteProductImage(ctx context.Context, id stri
 	return r.db.WithContext(ctx).Delete(&image).Error
 }
 
-func (r *ProductImageRepository) AddProductImageBatch(ctx context.Context, images []*request.ProductImageRequest) ([]*entity.ProductImage, error) {
+func (r *ProductImageRepository) AddProductImageBatch(ctx context.Context, images []*request.ProductImageCreateRequest) ([]*entity.ProductImage, error) {
 	var createdImages []*entity.ProductImage
 
 	for _, imgReq := range images {

@@ -50,7 +50,7 @@ func (h *VariantHandler) GetVariantByID(c *gin.Context) {
 }
 
 func (h *VariantHandler) AddVariant(c *gin.Context) {
-	var variant request.VariantRequest
+	var variant request.VariantCreateRequest
 	if err := c.ShouldBindJSON(&variant); err != nil {
 		pkg.HandleValidationError(c, err)
 		return
@@ -75,10 +75,10 @@ func (h *VariantHandler) AddVariant(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"message": "Variant created successfully", "data": variant})
 }
 
-func (h *VariantHandler) PatchVariant(c *gin.Context) {
+func (h *VariantHandler) UpdateVariant(c *gin.Context) {
 	id := c.Param("id")
 
-	var variant request.VariantPatchRequest
+	var variant request.VariantUpdateRequest
 	if err := c.ShouldBindJSON(&variant); err != nil {
 		pkg.HandleValidationError(c, err)
 		return

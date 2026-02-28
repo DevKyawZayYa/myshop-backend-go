@@ -29,7 +29,7 @@ func (h *AttributeValueHandler) GetAllAttributeValues(c *gin.Context) {
 }
 
 func (h *AttributeValueHandler) AddAttributeValue(c *gin.Context) {
-	var avReq request.AttributeValueRequest
+	var avReq request.AttributeValueCreateRequest
 	if err := c.ShouldBindJSON(&avReq); err != nil {
 		pkg.HandleValidationError(c, err)
 		return
@@ -59,10 +59,10 @@ func (h *AttributeValueHandler) GetAttributeValueByID(c *gin.Context) {
 	c.JSON(http.StatusOK, av)
 }
 
-func (h *AttributeValueHandler) PatchAttributeValue(c *gin.Context) {
+func (h *AttributeValueHandler) UpdateAttributeValue(c *gin.Context) {
 	id := c.Param("id")
 
-	var avReq request.AttributeValuePatchRequest
+	var avReq request.AttributeValueUpdateRequest
 	if err := c.ShouldBindJSON(&avReq); err != nil {
 		pkg.HandleValidationError(c, err)
 		return

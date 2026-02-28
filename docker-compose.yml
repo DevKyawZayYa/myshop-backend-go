@@ -6,7 +6,7 @@ services:
       context: .
       dockerfile: services/product-service/Dockerfile.local
     ports:
-      - "8081:8080"
+      - "8080:8080"
     volumes:
       - ./shared:/workspace/shared
       - ./services/product-service:/workspace/services/product-service

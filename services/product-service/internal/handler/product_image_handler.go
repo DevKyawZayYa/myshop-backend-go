@@ -131,7 +131,7 @@ func (h *ProductImageHandler) GetImagesByVariantID(c *gin.Context) {
 }
 
 func (h *ProductImageHandler) AddProductImage(c *gin.Context) {
-	var imageReq request.ProductImageRequest
+	var imageReq request.ProductImageCreateRequest
 	if err := c.ShouldBindJSON(&imageReq); err != nil {
 		pkg.HandleValidationError(c, err)
 		return
@@ -167,7 +167,7 @@ func (h *ProductImageHandler) AddProductImage(c *gin.Context) {
 func (h *ProductImageHandler) UpdateProductImage(c *gin.Context) {
 	id := c.Param("id")
 
-	var imageReq request.ProductImagePatchRequest
+	var imageReq request.ProductImageUpdateRequest
 	if err := c.ShouldBindJSON(&imageReq); err != nil {
 		pkg.HandleValidationError(c, err)
 		return

@@ -29,7 +29,7 @@ func (h *AttributeHandler) GetAllAttributes(c *gin.Context) {
 }
 
 func (h *AttributeHandler) AddAttribute(c *gin.Context) {
-	var attr request.AttributeRequest
+	var attr request.AttributeCreateRequest
 	if err := c.ShouldBindJSON(&attr); err != nil {
 		pkg.HandleValidationError(c, err)
 		return
@@ -57,10 +57,10 @@ func (h *AttributeHandler) GetAttributeByID(c *gin.Context) {
 	c.JSON(http.StatusOK, attr)
 }
 
-func (h *AttributeHandler) PatchAttribute(c *gin.Context) {
+func (h *AttributeHandler) UpdateAttribute(c *gin.Context) {
 	id := c.Param("id")
 
-	var attr request.AttributePatchRequest
+	var attr request.AttributeUpdateRequest
 	if err := c.ShouldBindJSON(&attr); err != nil {
 		pkg.HandleValidationError(c, err)
 		return

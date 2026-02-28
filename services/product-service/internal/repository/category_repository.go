@@ -74,7 +74,7 @@ func (r *CategoryRepository) GetChildCategoriesByID(id string) ([]response.Categ
 	return categories, nil
 }
 
-func (r *CategoryRepository) AddCategory(category *request.CategoryRequest) error {
+func (r *CategoryRepository) AddCategory(category *request.CategoryCreateRequest) error {
 	if category.ParentID != nil {
 		if !r.CheckIfCategoryExists(pkg.UintToString(*category.ParentID)) {
 			return pkg.ParentCategoryNotFound
@@ -96,7 +96,7 @@ func (r *CategoryRepository) AddCategory(category *request.CategoryRequest) erro
 	return nil
 }
 
-func (r *CategoryRepository) UpdateCategory(id string, category *request.CategoryPatchRequest) (
+func (r *CategoryRepository) UpdateCategory(id string, category *request.CategoryUpdateRequest) (
 	*response.CategoryResponse, error) {
 	if !r.CheckIfCategoryExists(id) {
 		return nil, pkg.CategoryNotFound
@@ -111,7 +111,13 @@ func (r *CategoryRepository) UpdateCategory(id string, category *request.Categor
 		}
 	}
 
-	if err := r.db.Model(&entity.Category{}).Where("id = ?", id).Updates(category).Error; err != nil {
+	updates := map[string]interface{}{
+		"name":        category.Name,
+		"description": category.Description,
+		"parent_id":   category.ParentID,
+	}
+
+	if err := r.db.Model(&entity.Category{}).Where("id = ?", id).Updates(updates).Error; err != nil {
 		var mysqlErr *mysql.MySQLError
 		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
 			return nil, pkg.DuplicateEntry
@@ -119,7 +125,7 @@ func (r *CategoryRepository) UpdateCategory(id string, category *request.Categor
 		return nil, err
 	}
 
-	return nil, nil
+	return r.GetCategoryByID(id)
 }
 
 func (r *CategoryRepository) DeleteCategory(id string) error {

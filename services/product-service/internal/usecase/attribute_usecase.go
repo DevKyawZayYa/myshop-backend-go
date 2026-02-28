@@ -18,7 +18,7 @@ func (u *AttributeUsecase) GetAllAttributes() ([]entity.Attribute, error) {
 	return u.attributeRepo.GetAllAttributes()
 }
 
-func (u *AttributeUsecase) AddAttribute(attr *request.AttributeRequest) error {
+func (u *AttributeUsecase) AddAttribute(attr *request.AttributeCreateRequest) error {
 	return u.attributeRepo.AddAttribute(attr)
 }
 
@@ -26,7 +26,7 @@ func (u *AttributeUsecase) GetAttributeByID(id string) (*entity.Attribute, error
 	return u.attributeRepo.GetAttributeByID(id)
 }
 
-func (u *AttributeUsecase) UpdateAttribute(id string, attr *request.AttributePatchRequest) (*entity.Attribute, error) {
+func (u *AttributeUsecase) UpdateAttribute(id string, attr *request.AttributeUpdateRequest) (*entity.Attribute, error) {
 	return u.attributeRepo.UpdateAttribute(id, attr)
 }
 

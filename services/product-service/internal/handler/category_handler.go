@@ -29,7 +29,7 @@ func (h *CategoryHandler) GetAllCategories(c *gin.Context) {
 }
 
 func (h *CategoryHandler) AddCategory(c *gin.Context) {
-	var category request.CategoryRequest
+	var category request.CategoryCreateRequest
 	if err := c.ShouldBindJSON(&category); err != nil {
 		pkg.HandleValidationError(c, err)
 		return
@@ -60,10 +60,10 @@ func (h *CategoryHandler) GetCategoryByID(c *gin.Context) {
 	c.JSON(http.StatusOK, category)
 }
 
-func (h *CategoryHandler) PatchCategory(c *gin.Context) {
+func (h *CategoryHandler) UpdateCategory(c *gin.Context) {
 	id := c.Param("id")
 
-	var category request.CategoryPatchRequest
+	var category request.CategoryUpdateRequest
 	if err := c.ShouldBindJSON(&category); err != nil {
 		pkg.HandleValidationError(c, err)
 		return

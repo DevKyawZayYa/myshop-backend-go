@@ -58,7 +58,7 @@ func (r *VariantRepository) GetVariantByID(ctx context.Context, id string) (*ent
 	return variant, nil
 }
 
-func (r *VariantRepository) AddVariant(ctx context.Context, variantReq *request.VariantRequest) error {
+func (r *VariantRepository) AddVariant(ctx context.Context, variantReq *request.VariantCreateRequest) error {
 	// Check if product exists
 	var product entity.Product
 	if err := r.db.WithContext(ctx).Preload("Attributes").
@@ -102,52 +102,27 @@ func (r *VariantRepository) AddVariant(ctx context.Context, variantReq *request.
 			return err
 		}
 
-		// Add variant images if provided
-		if len(variantReq.ProductImages) > 0 {
-			for _, imgInput := range variantReq.ProductImages {
-				image := entity.ProductImage{
-					ProductID: variantReq.ProductID,
-					VariantID: &variant.ID,
-					URL:       imgInput.URL,
-					IsDefault: imgInput.IsDefault,
-				}
-				if err := tx.Create(&image).Error; err != nil {
-					return err
-				}
-			}
-		}
-
 		return nil
 	})
 }
 
-func (r *VariantRepository) UpdateVariant(ctx context.Context, id string, variantReq *request.VariantPatchRequest) (*entity.Variant, error) {
-	// Check if product exists if ProductID is being updated
+func (r *VariantRepository) UpdateVariant(ctx context.Context, id string, variantReq *request.VariantUpdateRequest) (*entity.Variant, error) {
+	// Get current variant's product to validate attributes
+	var variant entity.Variant
+	if err := r.db.WithContext(ctx).First(&variant, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, pkg.VariantNotFound
+		}
+		return nil, err
+	}
 	var product entity.Product
-	if variantReq.ProductID != nil {
-		if err := r.db.WithContext(ctx).Preload("Attributes").First(&product, "id = ?", *variantReq.ProductID).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return nil, pkg.ProductNotFound
-			}
-			return nil, err
-		}
-	} else {
-		// Get current variant's product to validate attributes
-		var variant entity.Variant
-		if err := r.db.WithContext(ctx).First(&variant, "id = ?", id).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return nil, pkg.VariantNotFound
-			}
-			return nil, err
-		}
-		if err := r.db.WithContext(ctx).Preload("Attributes").First(&product, "id = ?", variant.ProductID).Error; err != nil {
-			return nil, err
-		}
+	if err := r.db.WithContext(ctx).Preload("Attributes").First(&product, "id = ?", variant.ProductID).Error; err != nil {
+		return nil, err
 	}
 
 	// Check if attributes exist and belong to product if being updated
-	if variantReq.AttributeValues != nil && len(*variantReq.AttributeValues) > 0 {
-		attributes := r.CheckAttributeValuesExist(ctx, *variantReq.AttributeValues)
+	if len(variantReq.AttributeValues) > 0 {
+		attributes := r.CheckAttributeValuesExist(ctx, variantReq.AttributeValues)
 		if attributes == nil {
 			return nil, pkg.AttributeValueNotFound
 		}
@@ -158,30 +133,14 @@ func (r *VariantRepository) UpdateVariant(ctx context.Context, id string, varian
 	}
 
 	updates := make(map[string]interface{})
-	if variantReq.ProductID != nil {
-		updates["product_id"] = *variantReq.ProductID
-	}
-	if variantReq.SKU != nil {
-		updates["sku"] = *variantReq.SKU
-	}
-	if variantReq.BasePrice != nil {
-		updates["base_price"] = *variantReq.BasePrice
-	}
-	if variantReq.ComparePrice != nil {
-		updates["compare_price"] = *variantReq.ComparePrice
-	}
-	if variantReq.Stock != nil {
-		updates["stock"] = *variantReq.Stock
-	}
-
-	if len(updates) == 0 && variantReq.AttributeValues == nil && variantReq.ProductImages == nil {
-		return nil, pkg.NoFieldsToUpdate
-	}
+	updates["base_price"] = variantReq.BasePrice
+	updates["compare_price"] = variantReq.ComparePrice
+	updates["stock"] = variantReq.Stock
 
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Fetch the variant first
-		var variant entity.Variant
-		if err := tx.First(&variant, "id = ?", id).Error; err != nil {
+		var variantToUpdate entity.Variant
+		if err := tx.First(&variantToUpdate, "id = ?", id).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return pkg.VariantNotFound
 			}
@@ -190,7 +149,7 @@ func (r *VariantRepository) UpdateVariant(ctx context.Context, id string, varian
 
 		// Update fields if provided
 		if len(updates) > 0 {
-			result := tx.Model(&variant).Updates(updates)
+			result := tx.Model(&variantToUpdate).Updates(updates)
 			if result.Error != nil {
 				var mysqlErr *mysql.MySQLError
 				if errors.As(result.Error, &mysqlErr) && mysqlErr.Number == 1062 {
@@ -201,36 +160,16 @@ func (r *VariantRepository) UpdateVariant(ctx context.Context, id string, varian
 		}
 
 		// Update attribute values if provided
-		if variantReq.AttributeValues != nil {
-			attributes := r.CheckAttributeValuesExist(ctx, *variantReq.AttributeValues)
-			variant.AttributeValues = attributes
+		if len(variantReq.AttributeValues) > 0 {
+			attributes := r.CheckAttributeValuesExist(ctx, variantReq.AttributeValues)
+			variantToUpdate.AttributeValues = attributes
 
 			// Use FullSaveAssociations to save the association
-			if err := tx.Model(&product).Association("AttributeValues").Replace(variant); err != nil {
+			if err := tx.Model(&product).Association("AttributeValues").Replace(variantToUpdate); err != nil {
 				return err
 			}
 		}
 
-		// Update product images if provided
-		if variantReq.ProductImages != nil {
-			// Delete existing images for this variant
-			if err := tx.Where("variant_id = ?", variant.ID).Delete(&entity.ProductImage{}).Error; err != nil {
-				return err
-			}
-
-			// Add new images
-			for _, imgInput := range *variantReq.ProductImages {
-				image := entity.ProductImage{
-					ProductID: variant.ProductID,
-					VariantID: &variant.ID,
-					URL:       imgInput.URL,
-					IsDefault: imgInput.IsDefault,
-				}
-				if err := tx.Create(&image).Error; err != nil {
-					return err
-				}
-			}
-		}
 		return nil
 	})
 

@@ -63,7 +63,7 @@ func (r *ProductRepository) GetProductByID(ctx context.Context, id string) (*ent
 	return product, nil
 }
 
-func (r *ProductRepository) AddProduct(ctx context.Context, productReq *request.ProductRequest) error {
+func (r *ProductRepository) AddProduct(ctx context.Context, productReq *request.ProductCreateRequest) error {
 	categories := r.CheckCategoriesExist(ctx, productReq.Categories)
 	if categories == nil {
 		return pkg.CategoryNotFound
@@ -103,54 +103,26 @@ func (r *ProductRepository) AddProduct(ctx context.Context, productReq *request.
 			}
 		}
 
-		// Add product images if provided
-		if len(productReq.ProductImages) > 0 {
-			for _, imgInput := range productReq.ProductImages {
-				image := entity.ProductImage{
-					ProductID: product.ID,
-					URL:       imgInput.URL,
-					IsDefault: imgInput.IsDefault,
-				}
-				if err := tx.Create(&image).Error; err != nil {
-					return err
-				}
-			}
-		}
-
 		return nil
 	})
 }
 
-func (r *ProductRepository) UpdateProduct(ctx context.Context, id string, productReq *request.ProductPatchRequest) (*entity.Product, error) {
-	if productReq.Categories != nil {
-		if cats := r.CheckCategoriesExist(ctx, *productReq.Categories); cats == nil {
-			return nil, pkg.CategoryNotFound
-		}
+func (r *ProductRepository) UpdateProduct(ctx context.Context, id string, productReq *request.ProductUpdateRequest) (*entity.Product, error) {
+	if cats := r.CheckCategoriesExist(ctx, productReq.Categories); cats == nil {
+		return nil, pkg.CategoryNotFound
 	}
 
-	if productReq.Attributes != nil && len(*productReq.Attributes) > 0 {
-		if attrs := r.CheckAttributesExist(ctx, *productReq.Attributes); attrs == nil {
+	if len(productReq.Attributes) > 0 {
+		if attrs := r.CheckAttributesExist(ctx, productReq.Attributes); attrs == nil {
 			return nil, pkg.AttributeNotFound
 		}
 	}
 
 	updates := make(map[string]interface{})
-	if productReq.Name != nil {
-		updates["name"] = *productReq.Name
-	}
-	if productReq.Description != nil {
-		updates["description"] = *productReq.Description
-	}
-	if productReq.BasePrice != nil {
-		updates["base_price"] = *productReq.BasePrice
-	}
-	if productReq.ComparePrice != nil {
-		updates["compare_price"] = *productReq.ComparePrice
-	}
-
-	if len(updates) == 0 && productReq.Categories == nil && productReq.Attributes == nil && productReq.ProductImages == nil {
-		return nil, pkg.NoFieldsToUpdate
-	}
+	updates["name"] = productReq.Name
+	updates["description"] = productReq.Description
+	updates["base_price"] = productReq.BasePrice
+	updates["compare_price"] = productReq.ComparePrice
 
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if len(updates) > 0 {
@@ -175,38 +147,16 @@ func (r *ProductRepository) UpdateProduct(ctx context.Context, id string, produc
 			return err
 		}
 
-		if productReq.Categories != nil {
-			categories := r.CheckCategoriesExist(ctx, *productReq.Categories)
-			if err := tx.Model(&product).Association("Categories").Replace(categories); err != nil {
-				return err
-			}
+		categories := r.CheckCategoriesExist(ctx, productReq.Categories)
+		if err := tx.Model(&product).Association("Categories").Replace(categories); err != nil {
+			return err
 		}
 
-		if productReq.Attributes != nil {
-			attributes := r.CheckAttributesExist(ctx, *productReq.Attributes)
-			if err := tx.Model(&product).Association("Attributes").Replace(attributes); err != nil {
-				return err
-			}
+		attributes := r.CheckAttributesExist(ctx, productReq.Attributes)
+		if err := tx.Model(&product).Association("Attributes").Replace(attributes); err != nil {
+			return err
 		}
 
-		if productReq.ProductImages != nil {
-			// Delete existing images
-			if err := tx.Where("product_id = ?", id).Delete(&entity.ProductImage{}).Error; err != nil {
-				return err
-			}
-
-			// Add new images
-			for _, imgInput := range *productReq.ProductImages {
-				image := entity.ProductImage{
-					ProductID: product.ID,
-					URL:       imgInput.URL,
-					IsDefault: imgInput.IsDefault,
-				}
-				if err := tx.Create(&image).Error; err != nil {
-					return err
-				}
-			}
-		}
 		return nil
 	})
 
